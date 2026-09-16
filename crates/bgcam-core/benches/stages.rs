@@ -97,7 +97,7 @@ fn mask(c: &mut Criterion) {
         ((1280, 720), (1280, 720), MaskParams::RECURRENT_MODEL, "rvm"),
         ((256, 144), (1280, 720), MaskParams::MEMORYLESS_MODEL, "mediapipe"),
     ] {
-        let alpha: Vec<f16> = (0..mw * mh).map(|i| f16::from_f32((i % 97) as f32 / 96.0)).collect();
+        let alpha: Vec<u8> = (0..mw * mh).map(|i| (i % 256) as u8).collect();
         let mut refiner = MaskRefiner::new(mw, mh, size(ow, oh), params);
         group.bench_function(format!("{label}_{mw}x{mh}_to_{ow}x{oh}"), |b| {
             b.iter(|| {

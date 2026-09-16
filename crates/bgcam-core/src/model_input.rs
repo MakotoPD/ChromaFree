@@ -58,7 +58,7 @@ impl<T: TensorElement> ModelInputBuilder<T> {
             scaler: Nv12Scaler::new(frame_size, model_size, ScaleMode::Stretch),
             scaled: Nv12Frame::new(model_size),
             lookup,
-            tensor: vec![T::default(); model_size.luma_len() * 3],
+            tensor: Vec::new(),
         }
     }
 
@@ -79,6 +79,24 @@ impl<T: TensorElement> ModelInputBuilder<T> {
     }
 
     pub fn build(&mut self, frame: &Nv12Frame) -> Result<&[T], CoreError> {
+        let mut tensor = std::mem::take(&mut self.tensor);
+        tensor.resize(self.tensor_len(), T::default());
+        let result = self.write_into(frame, &mut tensor);
+        self.tensor = tensor;
+        result.map(|()| self.tensor.as_slice())
+    }
+
+    pub fn tensor_len(&self) -> usize {
+        self.model_size.luma_len() * 3
+    }
+
+    pub fn write_into(&mut self, frame: &Nv12Frame, tensor: &mut [T]) -> Result<(), CoreError> {
+        if tensor.len() != self.tensor_len() {
+            return Err(CoreError::PlaneSizeMismatch {
+                expected: self.tensor_len(),
+                actual: tensor.len(),
+            });
+        }
         self.scaler.scale(frame, &mut self.scaled)?;
         let width = self.model_size.width() as usize;
         let pixels = self.model_size.luma_len();
@@ -99,19 +117,19 @@ impl<T: TensorElement> ModelInputBuilder<T> {
         };
         match self.layout {
             TensorLayout::Nchw => {
-                let (red, rest) = self.tensor.split_at_mut(pixels);
+                let (red, rest) = tensor.split_at_mut(pixels);
                 let (green, blue) = rest.split_at_mut(pixels);
                 for (index, ((r, g), b)) in red.iter_mut().zip(green.iter_mut()).zip(blue.iter_mut()).enumerate() {
                     (*r, *g, *b) = convert(index);
                 }
             }
             TensorLayout::Nhwc => {
-                for (index, pixel) in self.tensor.chunks_exact_mut(3).enumerate() {
+                for (index, pixel) in tensor.chunks_exact_mut(3).enumerate() {
                     (pixel[0], pixel[1], pixel[2]) = convert(index);
                 }
             }
         }
-        Ok(&self.tensor)
+        Ok(())
     }
 }
 

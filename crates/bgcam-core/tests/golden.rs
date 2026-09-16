@@ -34,14 +34,14 @@ fn scene() -> Nv12Frame {
         .unwrap()
 }
 
-fn person_alpha(model_width: u32, model_height: u32) -> Vec<f32> {
+fn person_alpha(model_width: u32, model_height: u32) -> Vec<u8> {
     (0..model_height)
         .flat_map(|y| {
             (0..model_width).map(move |x| {
                 let dx = (x as f32 + 0.5) / model_width as f32 - 0.5;
                 let dy = (y as f32 + 0.5) / model_height as f32 - 0.75;
                 let distance = (dx * dx / 0.06 + dy * dy / 0.35).sqrt();
-                (1.0 - (distance - 0.9) / 0.2).clamp(0.0, 1.0)
+                ((1.0 - (distance - 0.9) / 0.2).clamp(0.0, 1.0) * 255.0 + 0.5) as u8
             })
         })
         .collect()

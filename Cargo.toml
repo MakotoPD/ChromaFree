@@ -14,6 +14,7 @@ publish = false
 bgcam-core = { path = "crates/bgcam-core" }
 thiserror = "2"
 half = "2"
+ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "download-binaries", "copy-dylibs", "tls-native", "api-27", "directml", "half", "preload-dylibs"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
 

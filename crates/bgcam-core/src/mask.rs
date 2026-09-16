@@ -1,6 +1,5 @@
 use crate::error::CoreError;
 use crate::frame::FrameSize;
-use crate::model_input::TensorElement;
 use crate::scale::{PlaneScaler, ScaleMode};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -112,7 +111,7 @@ impl MaskRefiner {
         self.has_history = false;
     }
 
-    pub fn refine<T: TensorElement>(&mut self, alpha: &[T]) -> Result<RefinedMask<'_>, CoreError> {
+    pub fn refine(&mut self, alpha: &[u8]) -> Result<RefinedMask<'_>, CoreError> {
         if alpha.len() != self.history.len() {
             return Err(CoreError::PlaneSizeMismatch {
                 expected: self.history.len(),
@@ -123,7 +122,7 @@ impl MaskRefiner {
         let take = 256 - keep;
         let blend_history = self.has_history && keep > 0;
         for ((value, history), shaped) in alpha.iter().zip(self.history.iter_mut()).zip(self.shaped.iter_mut()) {
-            let current = u32::from((value.to_unit().clamp(0.0, 1.0) * 255.0 + 0.5) as u8) << 8;
+            let current = u32::from(*value) << 8;
             let smoothed = if blend_history {
                 (u32::from(*history) * keep + current * take) >> 8
             } else {
@@ -153,7 +152,7 @@ mod tests {
     #[test]
     fn identity_params_quantise_and_upscale() {
         let mut refiner = MaskRefiner::new(4, 2, output(), MaskParams::RECURRENT_MODEL);
-        let alpha = [1.0f32; 8];
+        let alpha = [255u8; 8];
         let mask = refiner.refine(&alpha).unwrap();
         assert!(mask.luma.iter().all(|&v| v == 255));
         assert_eq!(mask.luma.len(), 32);
@@ -169,7 +168,7 @@ mod tests {
             edge_high: 0.7,
         };
         let mut refiner = MaskRefiner::new(4, 1, FrameSize::new(4, 2).unwrap(), params);
-        let mask = refiner.refine(&[0.2f32, 0.5, 0.8, 0.29]).unwrap();
+        let mask = refiner.refine(&[51u8, 128, 204, 74]).unwrap();
         assert_eq!(mask.luma[0], 0);
         assert_eq!(mask.luma[2], 255);
         assert!((120..=135).contains(&mask.luma[1]), "{}", mask.luma[1]);
@@ -183,18 +182,67 @@ mod tests {
             edge_high: 1.0,
         };
         let mut refiner = MaskRefiner::new(2, 2, FrameSize::new(2, 2).unwrap(), params);
-        refiner.refine(&[0.0f32; 4]).unwrap();
-        let second = refiner.refine(&[1.0f32; 4]).unwrap().luma[0];
+        refiner.refine(&[0u8; 4]).unwrap();
+        let second = refiner.refine(&[255u8; 4]).unwrap().luma[0];
         assert!((120..=135).contains(&second), "{second}");
-        let third = refiner.refine(&[1.0f32; 4]).unwrap().luma[0];
+        let third = refiner.refine(&[255u8; 4]).unwrap().luma[0];
         assert!(third > second);
         refiner.reset();
-        assert_eq!(refiner.refine(&[0.0f32; 4]).unwrap().luma[0], 0);
+        assert_eq!(refiner.refine(&[0u8; 4]).unwrap().luma[0], 0);
     }
 
     #[test]
     fn wrong_alpha_length_is_rejected() {
         let mut refiner = MaskRefiner::new(4, 2, output(), MaskParams::default());
-        assert!(refiner.refine(&[0.0f32; 3]).is_err());
+        assert!(refiner.refine(&[0u8; 3]).is_err());
+    }
+}
+
+pub fn quantize_unit_f32(values: &[f32], output: &mut [u8]) {
+    for (out, &value) in output.iter_mut().zip(values) {
+        *out = (value.clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
+    }
+}
+
+pub fn quantize_unit_f16(values: &[half::f16], output: &mut [u8]) {
+    let lookup = f16_lookup();
+    for (out, value) in output.iter_mut().zip(values) {
+        *out = lookup[usize::from(value.to_bits())];
+    }
+}
+
+fn f16_lookup() -> &'static [u8; 65536] {
+    static LOOKUP: std::sync::OnceLock<Box<[u8; 65536]>> = std::sync::OnceLock::new();
+    LOOKUP.get_or_init(|| {
+        let mut table = Box::new([0u8; 65536]);
+        for (bits, entry) in table.iter_mut().enumerate() {
+            let value = half::f16::from_bits(bits as u16).to_f32();
+            *entry = if value.is_nan() {
+                0
+            } else {
+                (value.clamp(0.0, 1.0) * 255.0 + 0.5) as u8
+            };
+        }
+        table
+    })
+}
+
+#[cfg(test)]
+mod quantize_tests {
+    use super::*;
+
+    #[test]
+    fn f16_and_f32_quantisation_agree() {
+        let values: Vec<f32> = (-20..=280).map(|i| i as f32 / 255.0).collect();
+        let halves: Vec<half::f16> = values.iter().map(|&v| half::f16::from_f32(v)).collect();
+        let mut a = vec![0; values.len()];
+        let mut b = vec![0; values.len()];
+        quantize_unit_f32(&values, &mut a);
+        quantize_unit_f16(&halves, &mut b);
+        for ((x, y), v) in a.iter().zip(&b).zip(&values) {
+            assert!(x.abs_diff(*y) <= 1, "{v}: {x} vs {y}");
+        }
+        assert_eq!(a[0], 0);
+        assert_eq!(*a.last().unwrap(), 255);
     }
 }

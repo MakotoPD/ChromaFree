@@ -8,6 +8,7 @@ pub mod mask;
 pub mod model_input;
 pub mod orientation;
 pub mod scale;
+pub mod segmentation;
 pub mod variant;
 
 pub use background::RgbImage;
@@ -20,4 +21,5 @@ pub use mask::{MaskParams, MaskRefiner};
 pub use model_input::{ModelInputBuilder, TensorElement, TensorLayout};
 pub use orientation::{Orientation, Rotation};
 pub use scale::{Nv12Scaler, PlaneScaler, ScaleMode};
-pub use variant::{ModelVariant, VariantPreference, select_variant};
+pub use segmentation::{AlphaMask, InferenceDevice, MediaPipeModel, MediaPipeVariant, RvmModel, SegmentationModel};
+pub use variant::{ModelVariant, VariantPreference, available_rvm_variants, select_variant};

@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::frame::FrameSize;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -64,6 +66,13 @@ pub const LANDSCAPE_RVM_VARIANTS: [ModelVariant; 23] = [
 
 pub fn all_rvm_variants() -> Vec<ModelVariant> {
     LANDSCAPE_RVM_VARIANTS.iter().flat_map(|v| [*v, v.portrait()]).collect()
+}
+
+pub fn available_rvm_variants(models_dir: &Path) -> Vec<ModelVariant> {
+    all_rvm_variants()
+        .into_iter()
+        .filter(|v| models_dir.join(v.rvm_file_name()).is_file())
+        .collect()
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]

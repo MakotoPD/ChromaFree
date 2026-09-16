@@ -323,7 +323,10 @@ mod tests {
                 .count()
         };
         assert!(spread(0.8) > spread(0.2));
-        let steps: Vec<usize> = [0.0, 0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9, 1.0].iter().map(|&s| spread(s)).collect();
+        let steps: Vec<usize> = [0.0, 0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9, 1.0]
+            .iter()
+            .map(|&s| spread(s))
+            .collect();
         assert!(steps.windows(2).all(|w| w[1] >= w[0]), "{steps:?}");
     }
 

@@ -10,6 +10,7 @@ publish.workspace = true
 thiserror.workspace = true
 half.workspace = true
 image.workspace = true
+ort.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
