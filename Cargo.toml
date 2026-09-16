@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/bgcam-core", "crates/bgcam-gpu"]
+members = ["crates/bgcam-core", "crates/bgcam-gpu", "crates/bgcam-ipc"]
 exclude = ["spikes"]
 
 [workspace.package]
@@ -25,6 +25,9 @@ windows = { version = "0.62", features = [
     "Win32_Graphics_Dxgi",
     "Win32_Graphics_Dxgi_Common",
     "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_System_Memory",
+    "Win32_System_Performance",
     "Win32_System_ProcessStatus",
     "Win32_System_Threading",
 ] }
