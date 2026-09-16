@@ -167,6 +167,61 @@ fn mediapipe_on_directml_finds_the_person() {
     assert_finds_person(&mut model, 60);
 }
 
+fn person_photo(width: u32, height: u32) -> Nv12Frame {
+    let path = std::env::var_os("BGCAM_PERSON_IMAGE").expect("set BGCAM_PERSON_IMAGE to a photo of a person at a desk");
+    RgbImage::load(std::path::Path::new(&path))
+        .unwrap()
+        .to_nv12(FrameSize::new(width, height).unwrap(), MATRIX)
+        .unwrap()
+}
+
+fn save_mask(name: &str, width: u32, height: u32, data: &[u8]) {
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("masks");
+    std::fs::create_dir_all(&dir).unwrap();
+    image::GrayImage::from_raw(width, height, data.to_vec())
+        .unwrap()
+        .save(dir.join(name))
+        .unwrap();
+}
+
+fn assert_person_photo_mask(model: &mut dyn SegmentationModel, file_name: &str) {
+    let frame = person_photo(1280, 720);
+    let run = run_model(model, &frame, 12);
+    let mask = run.masks.last().unwrap();
+    let size = model.mask_size();
+    save_mask(file_name, size.width(), size.height(), mask);
+    let face = mean(mask, size.width(), 0.45, 0.30, 0.53, 0.50);
+    let shirt = mean(mask, size.width(), 0.40, 0.65, 0.55, 0.80);
+    let wall = mean(mask, size.width(), 0.30, 0.02, 0.45, 0.14);
+    let wardrobe = mean(mask, size.width(), 0.68, 0.25, 0.80, 0.55);
+    println!(
+        "{}: face {face:.0}, shirt {shirt:.0}, wall {wall:.0}, wardrobe {wardrobe:.0}, median {:.2} ms",
+        model.name(),
+        run.median_ms
+    );
+    assert!(face > 220.0, "face region mean {face}");
+    assert!(shirt > 220.0, "shirt region mean {shirt}");
+    assert!(wall < 30.0, "wall region mean {wall}");
+    assert!(wardrobe < 30.0, "wardrobe region mean {wardrobe}");
+}
+
+#[test]
+#[ignore = "requires models, a DirectX 12 GPU and BGCAM_PERSON_IMAGE"]
+fn rvm_segments_a_person_photo() {
+    for variant in [ModelVariant::new(640, 360), ModelVariant::new(1280, 720)] {
+        let mut model = RvmModel::load(&models_dir(), variant, InferenceDevice::default()).unwrap();
+        assert_person_photo_mask(&mut model, &format!("rvm_{}x{}.png", variant.width, variant.height));
+    }
+}
+
+#[test]
+#[ignore = "requires models, a DirectX 12 GPU and BGCAM_PERSON_IMAGE"]
+fn mediapipe_segments_a_person_photo() {
+    let mut model =
+        MediaPipeModel::load(&models_dir(), MediaPipeVariant::Landscape, InferenceDevice::default()).unwrap();
+    assert_person_photo_mask(&mut model, "mediapipe_256x144.png");
+}
+
 #[test]
 fn missing_model_file_is_reported() {
     let result = RvmModel::load(
