@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/bgcam-core"]
+members = ["crates/bgcam-core", "crates/bgcam-gpu"]
 exclude = ["spikes"]
 
 [workspace.package]
@@ -16,6 +16,18 @@ thiserror = "2"
 half = "2"
 ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "download-binaries", "copy-dylibs", "tls-native", "api-27", "directml", "half", "preload-dylibs"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+windows = { version = "0.62", features = [
+    "Win32_AI_MachineLearning_DirectML",
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D_Fxc",
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Security",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+] }
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
 
 [profile.release]
