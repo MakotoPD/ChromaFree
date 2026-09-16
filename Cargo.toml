@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/bgcam-core", "crates/bgcam-gpu", "crates/bgcam-ipc"]
+members = ["crates/bgcam-core", "crates/bgcam-gpu", "crates/bgcam-ipc", "tools/bgcam-probe"]
 exclude = ["spikes"]
 
 [workspace.package]
@@ -12,6 +12,8 @@ publish = false
 
 [workspace.dependencies]
 bgcam-core = { path = "crates/bgcam-core" }
+bgcam-ipc = { path = "crates/bgcam-ipc" }
+anyhow = "1"
 thiserror = "2"
 half = "2"
 ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "download-binaries", "copy-dylibs", "tls-native", "api-27", "directml", "half", "preload-dylibs"] }
