@@ -36,7 +36,7 @@ use windows::{
 
 const FRAME_WIDTH: i64 = 1280;
 const FRAME_HEIGHT: i64 = 720;
-const STATIC_RESOLUTIONS: [(i64, i64); 14] = [
+const STATIC_RESOLUTIONS: [(i64, i64); 23] = [
     (640, 360),
     (960, 540),
     (1024, 576),
@@ -51,6 +51,15 @@ const STATIC_RESOLUTIONS: [(i64, i64); 14] = [
     (1680, 1050),
     (1920, 1200),
     (2560, 1600),
+    (640, 480),
+    (800, 600),
+    (960, 720),
+    (1024, 768),
+    (1280, 960),
+    (1440, 1080),
+    (1600, 1200),
+    (1920, 1440),
+    (2560, 1920),
 ];
 const WARMUP_FRAMES: usize = 30;
 const DEFAULT_FRAMES: usize = 500;
@@ -141,9 +150,11 @@ fn all_cases() -> Vec<Case> {
         .iter()
         .map(|&(width, height)| Model::RvmStatic { width, height });
     let models: Vec<Model> = models.into_iter().chain(static_models).collect();
+    let only_static = env::var("BENCH_STATIC_ONLY").is_ok_and(|v| v == "1");
     [Device::DirectMl, Device::Cpu]
         .into_iter()
         .flat_map(|device| models.iter().map(move |&model| Case { model, device }))
+        .filter(|case| !only_static || matches!(case.model, Model::RvmStatic { .. }))
         .filter(|case| {
             !matches!(
                 (case.device, case.model),

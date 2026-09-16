@@ -44,7 +44,8 @@ if (($converted | Where-Object { -not (Test-Path $_) }).Count -gt 0) {
 $staticPrecision = 'fp16'
 $staticResolutions = @(
     '640x360', '960x540', '1024x576', '1280x720', '1600x900', '1920x1080', '2560x1440',
-    '640x400', '960x600', '1280x800', '1440x900', '1680x1050', '1920x1200', '2560x1600'
+    '640x400', '960x600', '1280x800', '1440x900', '1680x1050', '1920x1200', '2560x1600',
+    '640x480', '800x600', '960x720', '1024x768', '1280x960', '1440x1080', '1600x1200', '1920x1440', '2560x1920'
 )
 $missing = $staticResolutions | Where-Object { -not (Test-Path "rvm_mobilenetv3_${staticPrecision}_${_}_static.onnx") }
 foreach ($resolution in $staticResolutions | Where-Object { $missing -notcontains $_ }) {
