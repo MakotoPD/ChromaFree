@@ -1,0 +1,10 @@
+/target/
+/build/
+/spikes/**/target/
+/spikes/**/build/
+/models/*.onnx
+/models/*.tflite
+/models/.venv/
+/spikes/**/results/
+CLAUDE.md
+.claude/
