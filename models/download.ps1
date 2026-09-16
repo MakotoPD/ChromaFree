@@ -40,3 +40,23 @@ if (($converted | Where-Object { -not (Test-Path $_) }).Count -gt 0) {
         Write-Host "ok        $name"
     }
 }
+
+$staticVariants = @(
+    @{ Precision = 'fp16'; Width = 1280; Height = 720; Ratio = '0.25' },
+    @{ Precision = 'fp16'; Width = 640; Height = 360; Ratio = '0.5' },
+    @{ Precision = 'fp32'; Width = 1280; Height = 720; Ratio = '0.25' }
+)
+foreach ($variant in $staticVariants) {
+    $name = "rvm_mobilenetv3_$($variant.Precision)_$($variant.Width)x$($variant.Height)_static.onnx"
+    if (Test-Path $name) { Write-Host "ok        $name"; continue }
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        throw 'Static RVM variants require uv (https://docs.astral.sh/uv/)'
+    }
+    Write-Host "freeze    $name"
+    $ErrorActionPreference = 'Continue'
+    uv run --no-project --python 3.11 `
+        --with onnx==1.17.0 --with onnxsim==0.7.3 --with onnxruntime --with 'numpy<2' `
+        python make_rvm_static.py $variant.Precision $variant.Width $variant.Height $variant.Ratio 2>$null
+    $ErrorActionPreference = 'Stop'
+    if ($LASTEXITCODE -ne 0) { throw "freezing $name failed" }
+}
