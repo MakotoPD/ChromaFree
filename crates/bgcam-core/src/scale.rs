@@ -55,9 +55,12 @@ impl SourceRect {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Tap {
-    index: u32,
+    first: u32,
+    second: u32,
     fraction: u32,
 }
+
+const NO_ROW: u32 = u32::MAX;
 
 #[derive(Clone, Debug)]
 pub struct PlaneScaler {
@@ -68,29 +71,58 @@ pub struct PlaneScaler {
     channels: usize,
     column_taps: Vec<Tap>,
     row_taps: Vec<Tap>,
+    cached_rows: [u32; 2],
+    row_cache: [Vec<u16>; 2],
 }
 
 fn taps(source_len: u32, target_len: u32, rect_start: f64, rect_len: f64) -> Vec<Tap> {
-    let max_index = f64::from(source_len - 1);
+    let last = source_len - 1;
+    let max_index = f64::from(last);
     (0..target_len)
         .map(|i| {
             let position =
                 ((f64::from(i) + 0.5) * rect_len / f64::from(target_len) - 0.5 + rect_start).clamp(0.0, max_index);
             let index = position.floor();
             let fraction = ((position - index) * f64::from(FRACTION_ONE)).round() as u32;
-            if fraction >= FRACTION_ONE {
-                Tap {
-                    index: (index as u32 + 1).min(source_len - 1),
-                    fraction: 0,
-                }
+            let (first, fraction) = if fraction >= FRACTION_ONE {
+                ((index as u32 + 1).min(last), 0)
             } else {
-                Tap {
-                    index: index as u32,
-                    fraction,
-                }
+                (index as u32, fraction)
+            };
+            Tap {
+                first,
+                second: (first + 1).min(last),
+                fraction,
             }
         })
         .collect()
+}
+
+fn interpolate_row<const C: usize>(taps: &[Tap], source_row: &[u8], output: &mut [u16]) {
+    for (tap, pixel) in taps.iter().zip(output.chunks_exact_mut(C)) {
+        let left = &source_row[tap.first as usize * C..tap.first as usize * C + C];
+        let right = &source_row[tap.second as usize * C..tap.second as usize * C + C];
+        let fx = tap.fraction as u16;
+        let ix = FRACTION_ONE as u16 - fx;
+        for c in 0..C {
+            pixel[c] = u16::from(left[c]) * ix + u16::from(right[c]) * fx;
+        }
+    }
+}
+
+fn blend_rows(top: &[u16], bottom: &[u16], fraction: u32, output: &mut [u8]) {
+    if fraction == 0 {
+        for (out, &t) in output.iter_mut().zip(top) {
+            *out = ((u32::from(t) + (FRACTION_ONE >> 1)) >> FRACTION_BITS) as u8;
+        }
+        return;
+    }
+    let fy = fraction;
+    let iy = FRACTION_ONE - fraction;
+    let round = 1 << (2 * FRACTION_BITS - 1);
+    for ((out, &t), &b) in output.iter_mut().zip(top).zip(bottom) {
+        *out = ((u32::from(t) * iy + u32::from(b) * fy + round) >> (2 * FRACTION_BITS)) as u8;
+    }
 }
 
 impl PlaneScaler {
@@ -114,6 +146,7 @@ impl PlaneScaler {
         channels: usize,
         rect: SourceRect,
     ) -> Self {
+        let row_len = target_width as usize * channels;
         Self {
             source_width,
             source_height,
@@ -122,6 +155,8 @@ impl PlaneScaler {
             channels,
             column_taps: taps(source_width, target_width, rect.x, rect.width),
             row_taps: taps(source_height, target_height, rect.y, rect.height),
+            cached_rows: [NO_ROW; 2],
+            row_cache: [vec![0; row_len], vec![0; row_len]],
         }
     }
 
@@ -133,41 +168,50 @@ impl PlaneScaler {
         self.target_width as usize * self.target_height as usize * self.channels
     }
 
-    pub fn scale(&self, source: &[u8], target: &mut [u8]) -> Result<(), CoreError> {
+    pub fn scale(&mut self, source: &[u8], target: &mut [u8]) -> Result<(), CoreError> {
         check_len(self.source_len(), source.len())?;
         check_len(self.target_len(), target.len())?;
-        let channels = self.channels;
-        let source_stride = self.source_width as usize * channels;
-        let last_row = self.source_height as usize - 1;
-        let last_column = self.source_width as usize - 1;
-        for (row_tap, target_row) in self
-            .row_taps
-            .iter()
-            .zip(target.chunks_exact_mut(self.target_width as usize * channels))
-        {
-            let top_index = row_tap.index as usize;
-            let bottom_index = (top_index + 1).min(last_row);
-            let top = &source[top_index * source_stride..(top_index + 1) * source_stride];
-            let bottom = &source[bottom_index * source_stride..(bottom_index + 1) * source_stride];
-            let fy = row_tap.fraction;
-            let iy = FRACTION_ONE - fy;
-            for (column_tap, target_pixel) in self.column_taps.iter().zip(target_row.chunks_exact_mut(channels)) {
-                let left = column_tap.index as usize;
-                let right = (left + 1).min(last_column);
-                let fx = column_tap.fraction;
-                let ix = FRACTION_ONE - fx;
-                for (channel, value) in target_pixel.iter_mut().enumerate() {
-                    let tl = u32::from(top[left * channels + channel]);
-                    let tr = u32::from(top[right * channels + channel]);
-                    let bl = u32::from(bottom[left * channels + channel]);
-                    let br = u32::from(bottom[right * channels + channel]);
-                    let upper = tl * ix + tr * fx;
-                    let lower = bl * ix + br * fx;
-                    *value = ((upper * iy + lower * fy + (1 << (2 * FRACTION_BITS - 1))) >> (2 * FRACTION_BITS)) as u8;
-                }
-            }
+        match self.channels {
+            1 => self.scale_channels::<1>(source, target),
+            2 => self.scale_channels::<2>(source, target),
+            3 => self.scale_channels::<3>(source, target),
+            _ => self.scale_channels::<4>(source, target),
         }
         Ok(())
+    }
+
+    fn ensure_row<const C: usize>(&mut self, source: &[u8], row: u32, keep: Option<usize>) -> usize {
+        if let Some(slot) = self.cached_rows.iter().position(|&cached| cached == row) {
+            return slot;
+        }
+        let slot = match keep {
+            Some(kept) => 1 - kept,
+            None => usize::from(self.cached_rows[1] == NO_ROW || self.cached_rows[1] < self.cached_rows[0]),
+        };
+        let stride = self.source_width as usize * C;
+        let start = row as usize * stride;
+        interpolate_row::<C>(
+            &self.column_taps,
+            &source[start..start + stride],
+            &mut self.row_cache[slot],
+        );
+        self.cached_rows[slot] = row;
+        slot
+    }
+
+    fn scale_channels<const C: usize>(&mut self, source: &[u8], target: &mut [u8]) {
+        self.cached_rows = [NO_ROW; 2];
+        let row_len = self.target_width as usize * C;
+        for (index, target_row) in target.chunks_exact_mut(row_len).enumerate() {
+            let tap = self.row_taps[index];
+            let top = self.ensure_row::<C>(source, tap.first, None);
+            if tap.fraction == 0 {
+                blend_rows(&self.row_cache[top], &self.row_cache[top], 0, target_row);
+                continue;
+            }
+            let bottom = self.ensure_row::<C>(source, tap.second, Some(top));
+            blend_rows(&self.row_cache[top], &self.row_cache[bottom], tap.fraction, target_row);
+        }
     }
 }
 
@@ -214,7 +258,7 @@ impl Nv12Scaler {
         self.target
     }
 
-    pub fn scale(&self, source: &Nv12Frame, target: &mut Nv12Frame) -> Result<(), CoreError> {
+    pub fn scale(&mut self, source: &Nv12Frame, target: &mut Nv12Frame) -> Result<(), CoreError> {
         self.source.ensure_eq(source.size())?;
         self.target.ensure_eq(target.size())?;
         if self.identity {
@@ -241,7 +285,7 @@ mod tests {
 
     #[test]
     fn identity_scale_copies_plane() {
-        let scaler = PlaneScaler::new(4, 3, 4, 3, 1, ScaleMode::Fill);
+        let mut scaler = PlaneScaler::new(4, 3, 4, 3, 1, ScaleMode::Fill);
         let source: Vec<u8> = (0..12).map(|i| i * 10).collect();
         let mut target = vec![0; 12];
         scaler.scale(&source, &mut target).unwrap();
@@ -250,7 +294,7 @@ mod tests {
 
     #[test]
     fn upscale_interpolates_between_neighbours() {
-        let scaler = PlaneScaler::new(2, 1, 4, 1, 1, ScaleMode::Stretch);
+        let mut scaler = PlaneScaler::new(2, 1, 4, 1, 1, ScaleMode::Stretch);
         let mut target = vec![0; 4];
         scaler.scale(&[0, 200], &mut target).unwrap();
         assert_eq!(target, vec![0, 50, 150, 200]);
@@ -258,7 +302,7 @@ mod tests {
 
     #[test]
     fn downscale_by_two_averages_pairs() {
-        let scaler = PlaneScaler::new(4, 2, 2, 1, 1, ScaleMode::Stretch);
+        let mut scaler = PlaneScaler::new(4, 2, 2, 1, 1, ScaleMode::Stretch);
         let mut target = vec![0; 2];
         scaler.scale(&[0, 100, 200, 40, 20, 120, 220, 60], &mut target).unwrap();
         assert_eq!(target, vec![60, 130]);
@@ -267,7 +311,7 @@ mod tests {
     #[test]
     fn fill_mode_crops_the_centre_of_a_wider_source() {
         let source: Vec<u8> = [0u8, 0, 90, 90, 180, 180, 0, 0].repeat(2);
-        let scaler = PlaneScaler::new(8, 2, 4, 2, 1, ScaleMode::Fill);
+        let mut scaler = PlaneScaler::new(8, 2, 4, 2, 1, ScaleMode::Fill);
         let mut target = vec![0; 8];
         scaler.scale(&source, &mut target).unwrap();
         assert_eq!(&target[..4], &[90, 90, 180, 180]);
@@ -275,7 +319,7 @@ mod tests {
 
     #[test]
     fn chroma_channels_are_scaled_independently() {
-        let scaler = PlaneScaler::new(2, 1, 4, 1, 2, ScaleMode::Stretch);
+        let mut scaler = PlaneScaler::new(2, 1, 4, 1, 2, ScaleMode::Stretch);
         let mut target = vec![0; 8];
         scaler.scale(&[0, 255, 200, 55], &mut target).unwrap();
         assert_eq!(target, vec![0, 255, 50, 205, 150, 105, 200, 55]);

@@ -77,21 +77,42 @@ impl Orientation {
     }
 
     fn transform_plane(self, source: &[u8], width: u32, height: u32, bytes_per_pixel: usize, destination: &mut [u8]) {
+        match bytes_per_pixel {
+            1 => self.transform_plane_pixels::<1>(source, width, height, destination),
+            _ => self.transform_plane_pixels::<2>(source, width, height, destination),
+        }
+    }
+
+    fn transform_plane_pixels<const P: usize>(self, source: &[u8], width: u32, height: u32, destination: &mut [u8]) {
         let (w, h) = (i64::from(width), i64::from(height));
         let out_width = match self.rotation {
             Rotation::Clockwise90 | Rotation::Clockwise270 => height as usize,
             Rotation::None | Rotation::Clockwise180 => width as usize,
         };
         let map = self.affine_map(w, h);
-        let step = (map.x_from_out_x + map.y_from_out_x * w) as isize * bytes_per_pixel as isize;
-        let row_advance = (map.x_from_out_y + map.y_from_out_y * w) as isize * bytes_per_pixel as isize;
-        let mut row_start = (map.x_offset + map.y_offset * w) as isize * bytes_per_pixel as isize;
-        for out_row in destination.chunks_exact_mut(out_width * bytes_per_pixel) {
-            let mut index = row_start;
-            for out_pixel in out_row.chunks_exact_mut(bytes_per_pixel) {
-                let start = index as usize;
-                out_pixel.copy_from_slice(&source[start..start + bytes_per_pixel]);
-                index += step;
+        let pixel = P as isize;
+        let step = (map.x_from_out_x + map.y_from_out_x * w) as isize;
+        let row_advance = (map.x_from_out_y + map.y_from_out_y * w) as isize * pixel;
+        let mut row_start = (map.x_offset + map.y_offset * w) as isize * pixel;
+        let row_bytes = out_width * P;
+        for out_row in destination.chunks_exact_mut(row_bytes) {
+            let start = row_start as usize;
+            if step == 1 {
+                out_row.copy_from_slice(&source[start..start + row_bytes]);
+            } else if step == -1 {
+                let first = start + P - row_bytes;
+                let source_row = &source[first..first + row_bytes];
+                for (out_pixel, source_pixel) in out_row.chunks_exact_mut(P).zip(source_row.chunks_exact(P).rev()) {
+                    out_pixel.copy_from_slice(source_pixel);
+                }
+            } else {
+                let mut index = row_start;
+                let byte_step = step * pixel;
+                for out_pixel in out_row.chunks_exact_mut(P) {
+                    let i = index as usize;
+                    out_pixel.copy_from_slice(&source[i..i + P]);
+                    index += byte_step;
+                }
             }
             row_start += row_advance;
         }
