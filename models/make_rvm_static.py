@@ -9,6 +9,7 @@ from onnx import numpy_helper
 
 TOLERANCE = {"float16": 5e-3, "float32": 1e-4}
 STEPS = 3
+ENCODER_WIDTH = 320
 
 
 def element_type(session):
@@ -62,23 +63,29 @@ def verify(dynamic, static_path, width, height, ratio, state_shapes):
     return worst
 
 
-def main():
-    if len(sys.argv) != 5:
-        raise SystemExit("usage: make_rvm_static.py <fp16|fp32> <width> <height> <downsample_ratio>")
-    precision, width, height, ratio = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), float(sys.argv[4])
-    models_dir = Path(__file__).parent
+def freeze_variant(models_dir, precision, width, height):
+    ratio = ENCODER_WIDTH / width
     source = models_dir / f"rvm_mobilenetv3_{precision}.onnx"
     target = models_dir / f"rvm_mobilenetv3_{precision}_{width}x{height}_static.onnx"
-
     dynamic = ort.InferenceSession(str(source), providers=["CPUExecutionProvider"])
     state_shapes = recurrent_state_shapes(dynamic, width, height, ratio)
     onnx.save(freeze(onnx.load(str(source)), width, height, ratio, state_shapes), str(target))
-
     worst = verify(dynamic, target, width, height, ratio, state_shapes)
-    limit = TOLERANCE["float16" if precision == "fp16" else "float32"]
-    status = "ok" if worst < limit else "FAIL"
-    print(f"{status:4} {target.name}: states={state_shapes} max|pha diff|={worst:.2e}")
-    sys.exit(0 if status == "ok" else 1)
+    ok = worst < TOLERANCE["float16" if precision == "fp16" else "float32"]
+    print(f"{'ok' if ok else 'FAIL':4} {target.name}: ratio={ratio:.4f} states={state_shapes} max|pha diff|={worst:.2e}")
+    return ok
+
+
+def main():
+    if len(sys.argv) < 3:
+        raise SystemExit("usage: make_rvm_static.py <fp16|fp32> <width>x<height> [<width>x<height> ...]")
+    precision = sys.argv[1]
+    models_dir = Path(__file__).parent
+    results = []
+    for resolution in sys.argv[2:]:
+        width, height = (int(v) for v in resolution.lower().split("x"))
+        results.append(freeze_variant(models_dir, precision, width, height))
+    sys.exit(0 if all(results) else 1)
 
 
 if __name__ == "__main__":

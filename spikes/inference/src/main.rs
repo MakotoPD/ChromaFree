@@ -36,6 +36,22 @@ use windows::{
 
 const FRAME_WIDTH: i64 = 1280;
 const FRAME_HEIGHT: i64 = 720;
+const STATIC_RESOLUTIONS: [(i64, i64); 14] = [
+    (640, 360),
+    (960, 540),
+    (1024, 576),
+    (1280, 720),
+    (1600, 900),
+    (1920, 1080),
+    (2560, 1440),
+    (640, 400),
+    (960, 600),
+    (1280, 800),
+    (1440, 900),
+    (1680, 1050),
+    (1920, 1200),
+    (2560, 1600),
+];
 const WARMUP_FRAMES: usize = 30;
 const DEFAULT_FRAMES: usize = 500;
 
@@ -48,7 +64,7 @@ enum Device {
 #[derive(Clone, Copy, Debug)]
 enum Model {
     Rvm { fp16: bool, ratio: f32, width: i64 },
-    RvmStatic { fp16: bool, width: i64 },
+    RvmStatic { width: i64, height: i64 },
     MediaPipe { landscape: bool },
 }
 
@@ -59,21 +75,15 @@ struct Case {
 }
 
 impl Model {
-    fn file_name(self) -> &'static str {
+    fn file_name(self) -> String {
         match self {
-            Model::Rvm { fp16: false, .. } => "rvm_mobilenetv3_fp32.onnx",
-            Model::Rvm { fp16: true, .. } => "rvm_mobilenetv3_fp16.onnx",
-            Model::RvmStatic {
-                fp16: false,
-                width: 1280,
-            } => "rvm_mobilenetv3_fp32_1280x720_static.onnx",
-            Model::RvmStatic {
-                fp16: true,
-                width: 1280,
-            } => "rvm_mobilenetv3_fp16_1280x720_static.onnx",
-            Model::RvmStatic { .. } => "rvm_mobilenetv3_fp16_640x360_static.onnx",
-            Model::MediaPipe { landscape: false } => "selfie_segmenter.onnx",
-            Model::MediaPipe { landscape: true } => "selfie_segmenter_landscape.onnx",
+            Model::Rvm { fp16: false, .. } => "rvm_mobilenetv3_fp32.onnx".into(),
+            Model::Rvm { fp16: true, .. } => "rvm_mobilenetv3_fp16.onnx".into(),
+            Model::RvmStatic { width, height } => {
+                format!("rvm_mobilenetv3_fp16_{width}x{height}_static.onnx")
+            }
+            Model::MediaPipe { landscape: false } => "selfie_segmenter.onnx".into(),
+            Model::MediaPipe { landscape: true } => "selfie_segmenter_landscape.onnx".into(),
         }
     }
 
@@ -85,12 +95,7 @@ impl Model {
                 width,
                 width * 9 / 16
             ),
-            Model::RvmStatic { fp16, width } => format!(
-                "RVM {} {}x{} static",
-                if fp16 { "fp16" } else { "fp32" },
-                width,
-                width * 9 / 16
-            ),
+            Model::RvmStatic { width, height } => format!("RVM fp16 {width}x{height} static"),
             Model::MediaPipe { landscape: false } => "MediaPipe 256x256".into(),
             Model::MediaPipe { landscape: true } => "MediaPipe 144x256".into(),
         }
@@ -129,24 +134,22 @@ fn all_cases() -> Vec<Case> {
             ratio: 0.5,
             width: FRAME_WIDTH / 2,
         },
-        Model::RvmStatic {
-            fp16: false,
-            width: FRAME_WIDTH,
-        },
-        Model::RvmStatic {
-            fp16: true,
-            width: FRAME_WIDTH,
-        },
-        Model::RvmStatic {
-            fp16: true,
-            width: FRAME_WIDTH / 2,
-        },
         Model::MediaPipe { landscape: false },
         Model::MediaPipe { landscape: true },
     ];
+    let static_models = STATIC_RESOLUTIONS
+        .iter()
+        .map(|&(width, height)| Model::RvmStatic { width, height });
+    let models: Vec<Model> = models.into_iter().chain(static_models).collect();
     [Device::DirectMl, Device::Cpu]
         .into_iter()
-        .flat_map(|device| models.into_iter().map(move |model| Case { model, device }))
+        .flat_map(|device| models.iter().map(move |&model| Case { model, device }))
+        .filter(|case| {
+            !matches!(
+                (case.device, case.model),
+                (Device::Cpu, Model::RvmStatic { width, .. }) if width > FRAME_WIDTH
+            )
+        })
         .collect()
 }
 
@@ -433,21 +436,28 @@ fn run_case(models_dir: &Path, case: Case, frames: usize) -> Result<Measurement>
     match case.model {
         Model::Rvm { .. } | Model::RvmStatic { .. } => {
             let fp16 = input_is_fp16(&session, "src");
-            let (width, ratio, state_shapes) = match case.model {
-                Model::Rvm { width, ratio, .. } => (width, Some(ratio), [[1i64, 1, 1, 1]; 4]),
-                Model::RvmStatic { width, .. } => (
-                    width,
-                    None,
-                    [
-                        [1, 16, 90, 160],
-                        [1, 20, 45, 80],
-                        [1, 40, 23, 40],
-                        [1, 64, 12, 20],
-                    ],
-                ),
+            let (width, height, ratio) = match case.model {
+                Model::Rvm { width, ratio, .. } => {
+                    (width, width * FRAME_HEIGHT / FRAME_WIDTH, Some(ratio))
+                }
+                Model::RvmStatic { width, height } => (width, height, None),
                 Model::MediaPipe { .. } => unreachable!(),
             };
-            let height = width * FRAME_HEIGHT / FRAME_WIDTH;
+            let state_shapes = ["r1i", "r2i", "r3i", "r4i"]
+                .iter()
+                .map(|name| {
+                    let input = session
+                        .inputs()
+                        .iter()
+                        .find(|i| i.name() == *name)
+                        .context("missing recurrent input")?;
+                    let shape = input
+                        .dtype()
+                        .tensor_shape()
+                        .context("state is not a tensor")?;
+                    Ok(shape.iter().map(|&d| d.max(1)).collect::<Vec<i64>>())
+                })
+                .collect::<Result<Vec<_>>>()?;
             let (w, h) = (width as usize, height as usize);
             let src = tensor_of(
                 vec![1, 3, height, width],
@@ -464,7 +474,7 @@ fn run_case(models_dir: &Path, case: Case, frames: usize) -> Result<Measurement>
             };
             let mut states = state_shapes
                 .iter()
-                .map(|shape| tensor_of(shape.to_vec(), fp16, |_| 0.0))
+                .map(|shape| tensor_of(shape.clone(), fp16, |_| 0.0))
                 .collect::<Result<Vec<_>>>()?;
             let run_options = RunOptions::new().map_err(ort_err)?.with_outputs(
                 OutputSelector::no_default()
