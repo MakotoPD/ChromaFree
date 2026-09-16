@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/bgcam-capture", "crates/bgcam-core", "crates/bgcam-gpu", "crates/bgcam-ipc", "tools/bgcam-probe"]
+members = ["crates/bgcam-app", "crates/bgcam-capture", "crates/bgcam-core", "crates/bgcam-gpu", "crates/bgcam-ipc", "tools/bgcam-probe"]
 exclude = ["spikes"]
 
 [workspace.package]
@@ -13,6 +13,12 @@ publish = false
 [workspace.dependencies]
 bgcam-core = { path = "crates/bgcam-core" }
 bgcam-ipc = { path = "crates/bgcam-ipc" }
+bgcam-capture = { path = "crates/bgcam-capture" }
+bgcam-gpu = { path = "crates/bgcam-gpu" }
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std", "ansi"] }
 anyhow = "1"
 thiserror = "2"
 half = "2"
