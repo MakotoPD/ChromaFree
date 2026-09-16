@@ -4,7 +4,8 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result, bail};
 use bgcam_ipc::layout::BGCAM_FRAME_CAPACITY;
 use bgcam_ipc::{
-    IpcError, ObjectNames, OutputMode, PixelFormat, ProducerChannel, ReaderChannel, qpc_frequency, qpc_now,
+    IpcError, ObjectNames, OutputMode, PixelFormat, ProducerChannel, ReaderChannel, VIRTUAL_CAMERA_CLSID,
+    VIRTUAL_CAMERA_NAME, qpc_frequency, qpc_now,
 };
 use windows::Win32::Media::MediaFoundation::{
     MF_VERSION, MFCreateVirtualCamera, MFSTARTUP_FULL, MFShutdown, MFStartup, MFVirtualCameraAccess_CurrentUser,
@@ -13,8 +14,6 @@ use windows::Win32::Media::MediaFoundation::{
 use windows::Win32::System::Com::{COINIT_MULTITHREADED, CoInitializeEx};
 use windows::core::HSTRING;
 
-const CAMERA_NAME: &str = "bgcam";
-const CAMERA_CLSID: &str = "{4525794B-703E-444B-A81D-2B278B2AD0E4}";
 const REPORT_INTERVAL: Duration = Duration::from_secs(5);
 const WAIT_SLICE: Duration = Duration::from_secs(1);
 
@@ -265,14 +264,14 @@ fn camera() -> Result<()> {
             MFVirtualCameraType_SoftwareCameraSource,
             MFVirtualCameraLifetime_Session,
             MFVirtualCameraAccess_CurrentUser,
-            &HSTRING::from(CAMERA_NAME),
-            &HSTRING::from(CAMERA_CLSID),
+            &HSTRING::from(VIRTUAL_CAMERA_NAME),
+            &HSTRING::from(VIRTUAL_CAMERA_CLSID),
             None,
         )
     }
     .context("creating the virtual camera")?;
     unsafe { camera.Start(None) }.context("starting the virtual camera, is vcam-source.dll registered?")?;
-    println!("virtual camera \"{CAMERA_NAME}\" is running, press Enter to remove it");
+    println!("virtual camera \"{VIRTUAL_CAMERA_NAME}\" is running, press Enter to remove it");
     std::io::stdin().lock().read_line(&mut String::new())?;
     unsafe { camera.Remove() }?;
     unsafe { MFShutdown() }?;

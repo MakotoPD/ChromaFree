@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/bgcam-core", "crates/bgcam-gpu", "crates/bgcam-ipc", "tools/bgcam-probe"]
+members = ["crates/bgcam-capture", "crates/bgcam-core", "crates/bgcam-gpu", "crates/bgcam-ipc", "tools/bgcam-probe"]
 exclude = ["spikes"]
 
 [workspace.package]

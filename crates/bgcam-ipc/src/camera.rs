@@ -1,0 +1,2 @@
+pub const VIRTUAL_CAMERA_NAME: &str = "bgcam";
+pub const VIRTUAL_CAMERA_CLSID: &str = "{4525794B-703E-444B-A81D-2B278B2AD0E4}";
