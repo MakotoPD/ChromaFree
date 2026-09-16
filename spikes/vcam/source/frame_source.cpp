@@ -51,21 +51,52 @@ namespace
         }
     }
 
+    uint8_t AlphaForColumn(uint32_t x)
+    {
+        const auto band = x * 3 / spike::FrameWidth;
+        return band == 0 ? 0 : (band == 1 ? 128 : 255);
+    }
+
+    void ApplyAlphaBands(const OutputTarget& target)
+    {
+        for (uint32_t y = 0; y < spike::FrameHeight; y++)
+        {
+            auto* row = target.scanline0 + static_cast<ptrdiff_t>(y) * target.pitch;
+            for (uint32_t x = 0; x < spike::FrameWidth; x++)
+            {
+                row[x * 4 + 3] = AlphaForColumn(x);
+            }
+        }
+    }
+
     void WriteFrame(const OutputTarget& target, const uint8_t* nv12)
     {
-        if (target.format == OutputFormat::Nv12)
+        switch (target.format)
         {
+        case OutputFormat::Nv12:
             WriteNv12(target, nv12);
-        }
-        else
-        {
+            break;
+        case OutputFormat::Rgb32:
             WriteRgb32(target, nv12);
+            break;
+        case OutputFormat::Argb32:
+            WriteRgb32(target, nv12);
+            ApplyAlphaBands(target);
+            break;
         }
     }
 
     const wchar_t* FormatName(OutputFormat format)
     {
-        return format == OutputFormat::Nv12 ? L"NV12" : L"RGB32";
+        switch (format)
+        {
+        case OutputFormat::Nv12:
+            return L"NV12";
+        case OutputFormat::Rgb32:
+            return L"RGB32";
+        default:
+            return L"ARGB32";
+        }
     }
 }
 

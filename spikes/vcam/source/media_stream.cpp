@@ -35,9 +35,10 @@ HRESULT MediaStream::Initialize(IMFMediaSource* source, DWORD streamId)
     RETURN_IF_FAILED(SetUINT32(MF_DEVICESTREAM_ATTRIBUTE_FRAMESOURCE_TYPES, MFFrameSourceTypes_Color));
     RETURN_IF_FAILED(MFCreateEventQueue(&_queue));
 
-    std::array<IMFMediaType*, 2> types{};
+    std::array<IMFMediaType*, 3> types{};
     RETURN_IF_FAILED(CreateVideoType(MFVideoFormat_NV12, 12, spike::FrameWidth, &types[0]));
     RETURN_IF_FAILED(CreateVideoType(MFVideoFormat_RGB32, 32, spike::FrameWidth * 4, &types[1]));
+    RETURN_IF_FAILED(CreateVideoType(MFVideoFormat_ARGB32, 32, spike::FrameWidth * 4, &types[2]));
     auto release = wil::scope_exit([&] {
         for (auto* type : types)
         {
@@ -63,7 +64,8 @@ HRESULT MediaStream::Start(IMFMediaType* type)
 
     GUID subtype{};
     RETURN_IF_FAILED(_currentType->GetGUID(MF_MT_SUBTYPE, &subtype));
-    _frames.Start(subtype == MFVideoFormat_RGB32 ? OutputFormat::Rgb32 : OutputFormat::Nv12);
+    const auto format = subtype == MFVideoFormat_ARGB32 ? OutputFormat::Argb32 : (subtype == MFVideoFormat_RGB32 ? OutputFormat::Rgb32 : OutputFormat::Nv12);
+    _frames.Start(format);
 
     RETURN_IF_FAILED(_allocator->InitializeSampleAllocator(10, _currentType.get()));
     RETURN_IF_FAILED(_queue->QueueEventParamVar(MEStreamStarted, GUID_NULL, S_OK, nullptr));

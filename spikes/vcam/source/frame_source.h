@@ -6,6 +6,7 @@ enum class OutputFormat
 {
     Nv12,
     Rgb32,
+    Argb32,
 };
 
 struct OutputTarget

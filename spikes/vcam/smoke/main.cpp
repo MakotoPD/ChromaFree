@@ -93,7 +93,7 @@ namespace
             {
                 result.firstByte = scanline0[0];
             }
-            result.lastFirstByte = scanline0[spike::FrameWidth / 2];
+            result.lastFirstByte = scanline0[3];
             THROW_IF_FAILED(buffer2d->Unlock2D());
             result.samples++;
             Sleep(1000 / spike::FrameRate);
@@ -134,13 +134,14 @@ int wmain(int argc, wchar_t** argv)
             THROW_IF_FAILED(source.query<IMFSampleAllocatorControl>()->SetDefaultAllocator(0, allocator.get()));
 
             int failures = 0;
-            for (DWORD typeIndex : { 0ul, 1ul })
+            constexpr const wchar_t* typeNames[] = { L"NV12  ", L"RGB32 ", L"ARGB32" };
+            for (DWORD typeIndex : { 0ul, 1ul, 2ul })
             {
                 const auto result = StreamFormat(source.get(), typeIndex, frames);
                 const bool ok = result.samples == frames;
                 failures += ok ? 0 : 1;
-                wprintf(L"%s %s: samples=%d/%d request avg=%.2fms pitch=%ld first pixel byte=%u last center byte=%u\n",
-                    ok ? L"ok  " : L"FAIL", typeIndex == 0 ? L"NV12 " : L"RGB32", result.samples, frames, result.requestMs, result.pitch,
+                wprintf(L"%s %s: samples=%d/%d request avg=%.2fms pitch=%ld first pixel byte=%u byte[3] of first row=%u\n",
+                    ok ? L"ok  " : L"FAIL", typeNames[typeIndex], result.samples, frames, result.requestMs, result.pitch,
                     result.firstByte, result.lastFirstByte);
             }
 
