@@ -7,6 +7,7 @@ pub mod frame;
 pub mod mask;
 pub mod model_input;
 pub mod orientation;
+pub mod pipeline;
 pub mod scale;
 pub mod segmentation;
 pub mod variant;
@@ -20,6 +21,10 @@ pub use frame::{BgraFrame, FrameSize, Mask, Nv12Frame};
 pub use mask::{MaskParams, MaskRefiner};
 pub use model_input::{ModelInputBuilder, TensorElement, TensorLayout};
 pub use orientation::{Orientation, Rotation};
+pub use pipeline::{
+    BackgroundEffect, CpuPipeline, ModelProvider, OnnxModelProvider, OutputFormat, PipelineOutput, PipelineSettings,
+    SegmentationMethod, SegmentationSettings,
+};
 pub use scale::{Nv12Scaler, PlaneScaler, ScaleMode};
 pub use segmentation::{AlphaMask, InferenceDevice, MediaPipeModel, MediaPipeVariant, RvmModel, SegmentationModel};
 pub use variant::{ModelVariant, VariantPreference, available_rvm_variants, select_variant};
