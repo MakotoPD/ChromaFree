@@ -1,0 +1,23 @@
+[package]
+name = "gpu-pipeline"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+anyhow = "1"
+half = "2"
+bgcam-core = { path = "../../crates/bgcam-core" }
+ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "download-binaries", "copy-dylibs", "tls-native", "api-27", "directml", "half", "preload-dylibs"] }
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D_Fxc",
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Security",
+    "Win32_System_Threading",
+] }
+image = { version = "0.25", default-features = false, features = ["png"] }
