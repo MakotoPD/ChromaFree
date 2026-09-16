@@ -47,6 +47,7 @@ $staticResolutions = @(
     '640x400', '960x600', '1280x800', '1440x900', '1680x1050', '1920x1200', '2560x1600',
     '640x480', '800x600', '960x720', '1024x768', '1280x960', '1440x1080', '1600x1200', '1920x1440', '2560x1920'
 )
+$staticResolutions = $staticResolutions + ($staticResolutions | ForEach-Object { $w, $h = $_ -split 'x'; "${h}x${w}" })
 $missing = $staticResolutions | Where-Object { -not (Test-Path "rvm_mobilenetv3_${staticPrecision}_${_}_static.onnx") }
 foreach ($resolution in $staticResolutions | Where-Object { $missing -notcontains $_ }) {
     Write-Host "ok        rvm_mobilenetv3_${staticPrecision}_${resolution}_static.onnx"

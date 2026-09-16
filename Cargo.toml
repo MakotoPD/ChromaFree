@@ -1,0 +1,24 @@
+[workspace]
+resolver = "3"
+members = ["crates/bgcam-core"]
+exclude = ["spikes"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "GPL-3.0-or-later"
+publish = false
+
+[workspace.dependencies]
+bgcam-core = { path = "crates/bgcam-core" }
+thiserror = "2"
+half = "2"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+
+[profile.release]
+debug = "line-tables-only"
+
+[profile.bench]
+debug = "line-tables-only"

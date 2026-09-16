@@ -9,7 +9,7 @@ from onnx import numpy_helper
 
 TOLERANCE = {"float16": 5e-3, "float32": 1e-4}
 STEPS = 3
-ENCODER_WIDTH = 320
+ENCODER_LONG_SIDE = 320
 
 
 def element_type(session):
@@ -64,7 +64,7 @@ def verify(dynamic, static_path, width, height, ratio, state_shapes):
 
 
 def freeze_variant(models_dir, precision, width, height):
-    ratio = ENCODER_WIDTH / width
+    ratio = ENCODER_LONG_SIDE / max(width, height)
     source = models_dir / f"rvm_mobilenetv3_{precision}.onnx"
     target = models_dir / f"rvm_mobilenetv3_{precision}_{width}x{height}_static.onnx"
     dynamic = ort.InferenceSession(str(source), providers=["CPUExecutionProvider"])
