@@ -104,7 +104,13 @@ impl fmt::Display for CaptureFormat {
 
 pub fn is_virtual_chromafree_camera(name: &str, symbolic_link: &str) -> bool {
     let clsid = VIRTUAL_CAMERA_CLSID.trim_matches(['{', '}']).to_ascii_lowercase();
-    name == VIRTUAL_CAMERA_NAME || symbolic_link.to_ascii_lowercase().contains(&clsid)
+    let decorated = name
+        .strip_prefix(VIRTUAL_CAMERA_NAME)
+        .is_some_and(|rest| rest.is_empty() || rest.starts_with(" ("));
+    let virtual_camera_link = symbolic_link.to_ascii_lowercase().contains("#vcamdevapi#");
+    (decorated && virtual_camera_link)
+        || name == VIRTUAL_CAMERA_NAME
+        || symbolic_link.to_ascii_lowercase().contains(&clsid)
 }
 
 fn capture_attributes(symbolic_link: Option<&str>) -> Result<IMFAttributes, CaptureError> {
@@ -138,19 +144,19 @@ fn string_attribute(activate: &IMFActivate, key: &GUID) -> Result<String, Captur
 }
 
 pub fn list_cameras() -> Result<Vec<CameraDevice>, CaptureError> {
-    Ok(enumerate_devices()?
+    Ok(list_all_cameras()?
         .into_iter()
         .filter(|device| !is_virtual_chromafree_camera(&device.name, &device.symbolic_link))
         .collect())
 }
 
 pub fn chromafree_camera_present() -> Result<bool, CaptureError> {
-    Ok(enumerate_devices()?
+    Ok(list_all_cameras()?
         .iter()
         .any(|device| is_virtual_chromafree_camera(&device.name, &device.symbolic_link)))
 }
 
-fn enumerate_devices() -> Result<Vec<CameraDevice>, CaptureError> {
+pub fn list_all_cameras() -> Result<Vec<CameraDevice>, CaptureError> {
     let attributes = capture_attributes(None)?;
     let mut activates = std::ptr::null_mut();
     let mut count = 0;
@@ -245,6 +251,14 @@ mod tests {
 
     #[test]
     fn virtual_camera_is_recognised_by_name_or_clsid() {
+        assert!(is_virtual_chromafree_camera(
+            "ChromaFree (Wirtualny aparat fotograficzny systemu Windows)",
+            r"\\?\swd#vcamdevapi#fe61578f#{e5323777-f976-4f5b-9b55-b94699c46e44}\{fcebba03-9d13-4c13-9940-cc84fcd132d1}"
+        ));
+        assert!(!is_virtual_chromafree_camera(
+            "ChromaFree (USB)",
+            r"\\?\usb#vid_1234&pid_5678#1"
+        ));
         assert!(is_virtual_chromafree_camera(
             "ChromaFree",
             r"\\?\SWD#VCAMDEVAPI#something"
