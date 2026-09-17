@@ -15,6 +15,7 @@ use crate::error::GpuError;
 
 pub const ROOT_CONSTANTS: usize = 16;
 const UNORDERED_ACCESS_SLOTS: usize = 4;
+const DEBUG_LAYER_VARIABLE: &str = "CHROMAFREE_D3D12_DEBUG";
 
 pub struct GpuDevice {
     pub(crate) device: ID3D12Device,
@@ -27,6 +28,7 @@ pub struct GpuDevice {
     fence_value: u64,
     root_signature: ID3D12RootSignature,
     adapter_name: String,
+    info_queue: Option<ID3D12InfoQueue>,
 }
 
 impl Drop for GpuDevice {
@@ -110,6 +112,14 @@ impl GpuDevice {
             .unwrap_or(description.Description.len());
         let adapter_name = String::from_utf16_lossy(&description.Description[..name_len]);
 
+        let debug = std::env::var_os(DEBUG_LAYER_VARIABLE).is_some_and(|value| value == "1");
+        if debug {
+            let mut layer: Option<ID3D12Debug> = None;
+            unsafe { D3D12GetDebugInterface(&mut layer) }?;
+            if let Some(layer) = layer {
+                unsafe { layer.EnableDebugLayer() };
+            }
+        }
         let mut device: Option<ID3D12Device> = None;
         unsafe { D3D12CreateDevice(&adapter, D3D_FEATURE_LEVEL_11_0, &mut device) }?;
         let device = device.ok_or(GpuError::AdapterNotFound(adapter_index))?;
@@ -132,6 +142,11 @@ impl GpuDevice {
         let fence: ID3D12Fence = unsafe { device.CreateFence(0, D3D12_FENCE_FLAG_NONE) }?;
         let fence_event = unsafe { CreateEventW(None, false, false, None) }?;
         let root_signature = root_signature(&device)?;
+        let info_queue = if debug {
+            Some(device.cast::<ID3D12InfoQueue>()?)
+        } else {
+            None
+        };
         Ok(Self {
             device,
             queue,
@@ -142,6 +157,7 @@ impl GpuDevice {
             fence_event,
             fence_value: 0,
             root_signature,
+            info_queue,
             adapter_name,
         })
     }
@@ -192,7 +208,7 @@ impl GpuDevice {
             bytes,
             D3D12_HEAP_TYPE_DEFAULT,
             D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
-            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+            D3D12_RESOURCE_STATE_COMMON,
         )
     }
 
@@ -356,7 +372,33 @@ impl GpuDevice {
                 return Err(GpuError::DirectMl("waiting for the GPU failed".into()));
             }
         }
-        unsafe { self.device.GetDeviceRemovedReason() }.map_err(|e| GpuError::DeviceRemoved(e.to_string()))
+        unsafe { self.device.GetDeviceRemovedReason() }.map_err(|e| GpuError::DeviceRemoved(e.to_string()))?;
+        self.check_validation()
+    }
+
+    fn check_validation(&self) -> Result<(), GpuError> {
+        let Some(queue) = &self.info_queue else {
+            return Ok(());
+        };
+        let mut problems = Vec::new();
+        for index in 0..unsafe { queue.GetNumStoredMessages() } {
+            let mut length = 0;
+            unsafe { queue.GetMessage(index, None, &mut length) }?;
+            let mut storage = vec![0u64; length.div_ceil(8)];
+            let message = storage.as_mut_ptr().cast::<D3D12_MESSAGE>();
+            unsafe { queue.GetMessage(index, Some(message), &mut length) }?;
+            let message = unsafe { &*message };
+            if message.Severity.0 <= D3D12_MESSAGE_SEVERITY_WARNING.0 {
+                let text = unsafe { std::slice::from_raw_parts(message.pDescription, message.DescriptionByteLength) };
+                problems.push(String::from_utf8_lossy(text).trim_end_matches(char::from(0)).to_owned());
+            }
+        }
+        unsafe { queue.ClearStoredMessages() };
+        if problems.is_empty() {
+            Ok(())
+        } else {
+            Err(GpuError::Validation(problems.join("; ")))
+        }
     }
 }
 

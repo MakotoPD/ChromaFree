@@ -13,6 +13,8 @@ pub enum GpuError {
     DirectMl(String),
     #[error("the GPU device was removed: {0}")]
     DeviceRemoved(String),
+    #[error("Direct3D 12 validation failed: {0}")]
+    Validation(String),
     #[error("inference failed: {0}")]
     Inference(String),
     #[error(transparent)]
