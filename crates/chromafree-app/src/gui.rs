@@ -6,7 +6,8 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use chromafree_capture::{CameraDevice, CaptureFormat, MediaFoundation, camera_formats, list_cameras};
-use chromafree_core::{BgraFrame, ModelVariant, available_rvm_variants};
+use chromafree_core::color::clamp_u8;
+use chromafree_core::{ColorMatrix, ModelVariant, PipelineOutput, available_rvm_variants};
 use chromafree_ipc::{ObjectNames, PixelFormat};
 use slint::{
     CloseRequestResponse, ComponentHandle, Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, VecModel,
@@ -26,7 +27,9 @@ use crate::engine::{
 slint::include_modules!();
 
 const CAMERA_CLOSE_DELAY: Duration = Duration::from_secs(5);
-const PREVIEW_MAX_WIDTH: u32 = 640;
+const PREVIEW_CHECKER_SIZE: usize = 16;
+const PREVIEW_CHECKER_LIGHT: u8 = 204;
+const PREVIEW_CHECKER_DARK: u8 = 153;
 const OUTPUT_PRESETS: [(u32, u32); 10] = [
     (640, 360),
     (960, 540),
@@ -74,37 +77,75 @@ impl EngineObserver for GuiObserver {
         }
     }
 
-    fn preview(&self, frame: &BgraFrame) {
+    fn preview(&self, output: &PipelineOutput<'_>, matrix: ColorMatrix) {
         if self.0.preview_pending.load(Ordering::Acquire) {
             return;
         }
         {
             let mut preview = self.0.preview.lock().unwrap_or_else(PoisonError::into_inner);
-            downscale_to_rgba(frame, &mut preview);
+            render_preview(output, matrix, &mut preview);
         }
         self.0.preview_pending.store(true, Ordering::Release);
         let _ = slint::invoke_from_event_loop(|| with_app(App::show_preview));
     }
 }
 
-fn downscale_to_rgba(frame: &BgraFrame, preview: &mut PreviewFrame) {
-    let source = frame.size();
-    let width = source.width().min(PREVIEW_MAX_WIDTH);
-    let height = ((source.height() as u64 * width as u64 / source.width() as u64) as u32).max(1);
-    let length = (width * height * 4) as usize;
-    if preview.rgba.len() != length {
-        preview.rgba.resize(length, 0);
+fn render_preview(output: &PipelineOutput<'_>, matrix: ColorMatrix, preview: &mut PreviewFrame) {
+    let size = match output {
+        PipelineOutput::Nv12(frame) => frame.size(),
+        PipelineOutput::Bgra(frame) => frame.size(),
+    };
+    if preview.rgba.len() != size.luma_len() * 4 {
+        preview.rgba.resize(size.luma_len() * 4, 0);
     }
-    preview.width = width;
-    preview.height = height;
-    let data = frame.data();
-    let source_width = source.width() as usize;
-    for (y, row) in preview.rgba.chunks_exact_mut(width as usize * 4).enumerate() {
-        let sy = y * source.height() as usize / height as usize;
-        for (x, pixel) in row.chunks_exact_mut(4).enumerate() {
-            let sx = x * source_width / width as usize;
-            let offset = (sy * source_width + sx) * 4;
-            pixel.copy_from_slice(&[data[offset + 2], data[offset + 1], data[offset], 255]);
+    preview.width = size.width();
+    preview.height = size.height();
+    let width = size.width() as usize;
+    match output {
+        PipelineOutput::Nv12(frame) => {
+            let k = matrix.inverse();
+            let chroma_stride = size.chroma_width() as usize * 2;
+            for (y, (row, luma_row)) in preview
+                .rgba
+                .chunks_exact_mut(width * 4)
+                .zip(frame.luma().chunks_exact(width))
+                .enumerate()
+            {
+                let chroma_row = &frame.chroma()[y / 2 * chroma_stride..(y / 2 + 1) * chroma_stride];
+                for (x, (pixel, &luma)) in row.chunks_exact_mut(4).zip(luma_row).enumerate() {
+                    let c = 298 * (i32::from(luma) - 16);
+                    let d = i32::from(chroma_row[x & !1]) - 128;
+                    let e = i32::from(chroma_row[(x & !1) + 1]) - 128;
+                    pixel[0] = clamp_u8((c + k.red_v * e + 128) >> 8);
+                    pixel[1] = clamp_u8((c + k.green_u * d + k.green_v * e + 128) >> 8);
+                    pixel[2] = clamp_u8((c + k.blue_u * d + 128) >> 8);
+                    pixel[3] = 255;
+                }
+            }
+        }
+        PipelineOutput::Bgra(frame) => {
+            for (y, (row, source_row)) in preview
+                .rgba
+                .chunks_exact_mut(width * 4)
+                .zip(frame.data().chunks_exact(width * 4))
+                .enumerate()
+            {
+                for (x, (pixel, source)) in row.chunks_exact_mut(4).zip(source_row.chunks_exact(4)).enumerate() {
+                    let checker = if (x / PREVIEW_CHECKER_SIZE + y / PREVIEW_CHECKER_SIZE).is_multiple_of(2) {
+                        PREVIEW_CHECKER_LIGHT
+                    } else {
+                        PREVIEW_CHECKER_DARK
+                    };
+                    let alpha = u32::from(source[3]);
+                    let blend = |channel: u8| {
+                        ((u32::from(channel) * alpha + u32::from(checker) * (255 - alpha) + 127) / 255) as u8
+                    };
+                    pixel[0] = blend(source[2]);
+                    pixel[1] = blend(source[1]);
+                    pixel[2] = blend(source[0]);
+                    pixel[3] = 255;
+                }
+            }
         }
     }
 }
@@ -324,6 +365,7 @@ impl App {
         window.on_choose_image(|| with_app(App::choose_image));
         window.on_reset_mask(|| with_app(App::reset_mask));
         window.on_color_preset(|color| with_app(move |app| app.color_preset(&color)));
+        window.on_preview_toggled(|enabled| with_app(move |app| app.set_preview(enabled)));
         window.window().on_close_requested(|| {
             let _ = slint::invoke_from_event_loop(|| with_app(App::close_window));
             CloseRequestResponse::HideWindow
@@ -339,13 +381,20 @@ impl App {
         {
             tracing::error!(%error, "showing the window failed");
         }
-        self.engine.send(EngineCommand::SetPreview(true));
     }
 
     fn close_window(&mut self) {
-        self.engine.send(EngineCommand::SetPreview(false));
+        self.set_preview(false);
         self.window = None;
+    }
+
+    fn set_preview(&mut self, enabled: bool) {
+        self.engine.send(EngineCommand::SetPreview(enabled));
         self.shared.preview_pending.store(false, Ordering::Release);
+        if let Some(window) = &self.window {
+            window.set_preview_enabled(enabled);
+            window.set_has_preview(false);
+        }
     }
 
     fn show_status(&mut self) {
@@ -659,7 +708,7 @@ impl App {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chromafree_core::FrameSize;
+    use chromafree_core::{BgraFrame, FrameSize};
 
     #[test]
     fn status_lines_describe_problems_in_polish() {
@@ -683,15 +732,28 @@ mod tests {
     }
 
     #[test]
-    fn preview_is_downscaled_and_converted_to_rgba() {
-        let mut frame = BgraFrame::new(FrameSize::new(1280, 720).unwrap());
+    fn preview_keeps_output_resolution_and_shows_transparency_on_a_checkerboard() {
+        let size = FrameSize::new(1280, 720).unwrap();
+        let mut frame = BgraFrame::new(size);
         for pixel in frame.data_mut().chunks_exact_mut(4) {
-            pixel.copy_from_slice(&[10, 20, 30, 0]);
+            pixel.copy_from_slice(&[10, 20, 30, 255]);
         }
+        frame.data_mut()[3] = 0;
         let mut preview = PreviewFrame::default();
-        downscale_to_rgba(&frame, &mut preview);
-        assert_eq!((preview.width, preview.height), (640, 360));
-        assert_eq!(&preview.rgba[..4], &[30, 20, 10, 255]);
+        render_preview(&PipelineOutput::Bgra(&frame), ColorMatrix::Bt709, &mut preview);
+        assert_eq!((preview.width, preview.height), (1280, 720));
+        let light = PREVIEW_CHECKER_LIGHT;
+        assert_eq!(&preview.rgba[..4], &[light, light, light, 255]);
+        assert_eq!(&preview.rgba[4..8], &[30, 20, 10, 255]);
+
+        let green = ColorMatrix::Bt709.to_yuv(chromafree_core::Rgb::GREEN_SCREEN);
+        let nv12 = chromafree_core::Nv12Frame::filled(size, green);
+        render_preview(&PipelineOutput::Nv12(&nv12), ColorMatrix::Bt709, &mut preview);
+        let expected = ColorMatrix::Bt709.to_rgb(green);
+        assert_eq!(
+            &preview.rgba[preview.rgba.len() - 4..],
+            &[expected.r, expected.g, expected.b, 255]
+        );
         assert_eq!(aspect_label(ModelVariant::new(1280, 720)), "16:9");
         assert_eq!(aspect_label(ModelVariant::new(1080, 1440)), "3:4");
     }

@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use chromafree_capture::{CaptureFormat, MediaFoundation};
-use chromafree_core::{BgraFrame, OutputFormat, PipelineOutput, RgbImage, nv12_to_bgra};
+use chromafree_core::{ColorMatrix, OutputFormat, PipelineOutput, RgbImage};
 use chromafree_ipc::{ObjectNames, OutputMode, PixelFormat, ProducerChannel, ProducerWaker};
 
 use crate::camera::{CameraOpenError, CameraProvider, OpenedCamera};
@@ -66,7 +66,7 @@ impl Default for EngineStatus {
 
 pub trait EngineObserver: Send + 'static {
     fn status_changed(&self, status: &EngineStatus);
-    fn preview(&self, frame: &BgraFrame);
+    fn preview(&self, output: &PipelineOutput<'_>, matrix: ColorMatrix);
 }
 
 pub struct EngineOptions {
@@ -172,7 +172,6 @@ struct Worker {
     virtual_camera: Option<VirtualCamera>,
     background: Option<(PathBuf, Arc<RgbImage>)>,
     preview_enabled: bool,
-    preview: Option<BgraFrame>,
     unused_since: Option<Instant>,
     stats: Stats,
 }
@@ -198,7 +197,6 @@ impl Worker {
             virtual_camera: None,
             background: None,
             preview_enabled: false,
-            preview: None,
             unused_since: None,
             stats: Stats::new(),
         }
@@ -239,7 +237,8 @@ impl Worker {
             let format = match consumer.format {
                 Some(PixelFormat::Bgra) => OutputFormat::Bgra,
                 Some(PixelFormat::Nv12) => OutputFormat::Nv12,
-                None => OutputFormat::Bgra,
+                None if self.config.effect.mode == EffectMode::Transparent => OutputFormat::Bgra,
+                None => OutputFormat::Nv12,
             };
             if let Err(error) = self.process_frame(format, consumer.active) {
                 tracing::warn!(error = format!("{error:#}"), "frame processing failed");
@@ -259,12 +258,7 @@ impl Worker {
         while let Ok(command) = self.commands.try_recv() {
             match command {
                 EngineCommand::Apply(config) => self.apply_config(*config),
-                EngineCommand::SetPreview(enabled) => {
-                    self.preview_enabled = enabled;
-                    if !enabled {
-                        self.preview = None;
-                    }
-                }
+                EngineCommand::SetPreview(enabled) => self.preview_enabled = enabled,
                 EngineCommand::Shutdown => return false,
             }
         }
@@ -360,17 +354,7 @@ impl Worker {
             _ => self.channel.set_active(false),
         }
         if self.preview_enabled {
-            match &output {
-                PipelineOutput::Bgra(frame) => self.observer.preview(frame),
-                PipelineOutput::Nv12(frame) => {
-                    let preview = match &mut self.preview {
-                        Some(preview) if preview.size() == frame.size() => preview,
-                        slot => slot.insert(BgraFrame::new(frame.size())),
-                    };
-                    nv12_to_bgra(frame, None, matrix, preview)?;
-                    self.observer.preview(preview);
-                }
-            }
+            self.observer.preview(&output, matrix);
         }
         let model = session.processor.active_model().map(str::to_owned);
         self.stats.frames += 1;

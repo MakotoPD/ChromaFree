@@ -8,7 +8,7 @@ use chromafree_app::config::Config;
 use chromafree_app::desktop::SingleInstance;
 use chromafree_app::engine::{Engine, EngineObserver, EngineOptions, EngineStatus};
 use chromafree_app::gui;
-use chromafree_core::BgraFrame;
+use chromafree_core::{ColorMatrix, PipelineOutput};
 use chromafree_ipc::ObjectNames;
 
 const CAMERA_CLOSE_DELAY: Duration = Duration::from_secs(5);
@@ -31,7 +31,7 @@ impl EngineObserver for LogObserver {
         );
     }
 
-    fn preview(&self, _frame: &BgraFrame) {}
+    fn preview(&self, _output: &PipelineOutput<'_>, _matrix: ColorMatrix) {}
 }
 
 fn models_dir() -> Result<PathBuf> {

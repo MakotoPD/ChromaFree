@@ -6,7 +6,7 @@ use chromafree_app::camera::{CameraOpenError, CameraProvider, OpenedCamera};
 use chromafree_app::config::{CameraConfig, Config, DeviceConfig, EffectMode};
 use chromafree_app::engine::{Engine, EngineCommand, EngineObserver, EngineOptions, EngineState, EngineStatus};
 use chromafree_capture::{CaptureError, CaptureFormat, Encoding, FrameSource, SyntheticSource};
-use chromafree_core::{BgraFrame, FrameSize, Nv12Frame};
+use chromafree_core::{ColorMatrix, FrameSize, Nv12Frame, PipelineOutput};
 use chromafree_ipc::{ObjectNames, OutputMode, PixelFormat, ReaderChannel};
 
 const CAMERA_WIDTH: u32 = 640;
@@ -78,8 +78,11 @@ impl EngineObserver for Recorder {
         self.0.lock().unwrap().statuses.push(status.clone());
     }
 
-    fn preview(&self, frame: &BgraFrame) {
-        assert_eq!(frame.data()[3], 255);
+    fn preview(&self, output: &PipelineOutput<'_>, _matrix: ColorMatrix) {
+        let PipelineOutput::Nv12(frame) = output else {
+            panic!("preview without a consumer should come from NV12 output");
+        };
+        assert_eq!(frame.size(), FrameSize::new(640, 360).unwrap());
         self.0.lock().unwrap().previews += 1;
     }
 }

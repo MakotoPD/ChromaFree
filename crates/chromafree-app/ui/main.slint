@@ -1,4 +1,4 @@
-import { Button, CheckBox, ComboBox, GroupBox, LineEdit, ScrollView, Slider, TabWidget, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Button, CheckBox, ComboBox, GroupBox, LineEdit, ScrollView, Slider, Switch, TabWidget, VerticalBox, HorizontalBox } from "std-widgets.slint";
 
 component Hint inherits Text {
     wrap: word-wrap;
@@ -82,23 +82,40 @@ export component MainWindow inherits Window {
     callback color-preset(string);
     callback choose-image();
     callback reset-mask();
+    in-out property <bool> preview-enabled;
+    callback preview-toggled(bool);
 
     HorizontalBox {
         VerticalBox {
             horizontal-stretch: 3;
+            HorizontalLayout {
+                spacing: 8px;
+                Switch {
+                    text: "Podgląd na żywo";
+                    checked <=> root.preview-enabled;
+                    toggled => {
+                        root.preview-toggled(self.checked);
+                    }
+                }
+                Hint {
+                    text: "Podgląd uruchamia kamerę i zużywa trochę procesora, więc domyślnie jest wyłączony.";
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+            }
             Rectangle {
                 vertical-stretch: 1;
                 background: #16181c;
                 border-radius: 8px;
                 clip: true;
-                if root.has-preview: Image {
+                if root.preview-enabled && root.has-preview: Image {
                     width: parent.width;
                     height: parent.height;
                     source: root.preview;
                     image-fit: contain;
                 }
-                if !root.has-preview: Text {
-                    text: "Podgląd pojawi się po uruchomieniu kamery";
+                if !root.preview-enabled || !root.has-preview: Text {
+                    text: root.preview-enabled ? "Uruchamianie kamery…" : "Podgląd jest wyłączony";
                     color: #8a8f98;
                     horizontal-alignment: center;
                     vertical-alignment: center;
