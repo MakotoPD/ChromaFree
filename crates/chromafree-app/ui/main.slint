@@ -94,14 +94,14 @@ export component MainWindow inherits Window {
             HorizontalLayout {
                 spacing: 8px;
                 Switch {
-                    text: "Podgląd na żywo";
+                    text: @tr("Live preview");
                     checked <=> root.preview-enabled;
                     toggled => {
                         root.preview-toggled(self.checked);
                     }
                 }
                 Hint {
-                    text: "Podgląd uruchamia kamerę i zużywa trochę procesora, więc domyślnie jest wyłączony.";
+                    text: @tr("The preview starts the camera and uses some processor time, so it is off by default.");
                     vertical-alignment: center;
                     horizontal-stretch: 1;
                 }
@@ -118,7 +118,7 @@ export component MainWindow inherits Window {
                     image-fit: contain;
                 }
                 if !root.preview-enabled || !root.has-preview: Text {
-                    text: root.preview-enabled ? "Uruchamianie kamery…" : "Podgląd jest wyłączony";
+                    text: root.preview-enabled ? @tr("Starting the camera…") : @tr("Preview is off");
                     color: #8a8f98;
                     horizontal-alignment: center;
                     vertical-alignment: center;
@@ -156,12 +156,12 @@ export component MainWindow inherits Window {
             min-width: 380px;
 
             Tab {
-                title: "Kamera";
+                title: @tr("Camera");
                 ScrollView {
                     VerticalBox {
                         alignment: start;
                         GroupBox {
-                            title: "Kamera wejściowa";
+                            title: @tr("Input camera");
                             VerticalBox {
                                 HorizontalBox {
                                     padding: 0;
@@ -174,7 +174,7 @@ export component MainWindow inherits Window {
                                         }
                                     }
                                     Button {
-                                        text: "Odśwież";
+                                        text: @tr("Refresh");
                                         clicked => {
                                             root.refresh-cameras();
                                         }
@@ -186,7 +186,7 @@ export component MainWindow inherits Window {
                                     wrap: word-wrap;
                                 }
                                 Text {
-                                    text: "Rozdzielczość i klatki kamery";
+                                    text: @tr("Camera resolution and frame rate");
                                 }
                                 ComboBox {
                                     model: root.format-names;
@@ -196,12 +196,12 @@ export component MainWindow inherits Window {
                                     }
                                 }
                                 Hint {
-                                    text: "Automatycznie wybiera największą rozdzielczość do 1920×1080, która nadąża za klatkami wyjścia. Wyższa rozdzielczość to lepsza jakość, ale więcej pracy przy skalowaniu.";
+                                    text: @tr("Automatic picks the largest resolution up to 1920×1080 that keeps up with the output frame rate. A higher resolution gives better quality but more scaling work.");
                                 }
                             }
                         }
                         GroupBox {
-                            title: "Wyjście wirtualnej kamery";
+                            title: @tr("Virtual camera output");
                             VerticalBox {
                                 HorizontalBox {
                                     padding: 0;
@@ -223,29 +223,29 @@ export component MainWindow inherits Window {
                                     }
                                 }
                                 Hint {
-                                    text: "Wirtualna kamera wystawia tylko tę rozdzielczość. Aplikacja, która już używa kamery, dostaje obraz w dotychczasowej rozdzielczości, a nową zobaczy po ponownym włączeniu kamery.";
+                                    text: @tr("The virtual camera offers only this resolution. An app that is already using the camera keeps its current resolution and gets the new one after it turns the camera on again.");
                                 }
                             }
                         }
                         GroupBox {
-                            title: "Orientacja";
+                            title: @tr("Orientation");
                             VerticalBox {
                                 ComboBox {
-                                    model: ["Bez obrotu", "Obrót o 90°", "Obrót o 180°", "Obrót o 270°"];
+                                    model: [@tr("No rotation"), @tr("Rotate 90°"), @tr("Rotate 180°"), @tr("Rotate 270°")];
                                     current-index <=> root.rotation-index;
                                     selected => {
                                         root.settings-edited();
                                     }
                                 }
                                 CheckBox {
-                                    text: "Odbicie lustrzane w poziomie";
+                                    text: @tr("Mirror horizontally");
                                     checked <=> root.mirror-horizontal;
                                     toggled => {
                                         root.settings-edited();
                                     }
                                 }
                                 CheckBox {
-                                    text: "Odbicie lustrzane w pionie";
+                                    text: @tr("Mirror vertically");
                                     checked <=> root.mirror-vertical;
                                     toggled => {
                                         root.settings-edited();
@@ -258,45 +258,45 @@ export component MainWindow inherits Window {
             }
 
             Tab {
-                title: "Tło";
+                title: @tr("Background");
                 ScrollView {
                     VerticalBox {
                         alignment: start;
                         GroupBox {
-                            title: "Efekt";
+                            title: @tr("Effect");
                             VerticalBox {
                                 ComboBox {
-                                    model: ["Bez zmian", "Rozmycie tła", "Usunięcie tła: kolor", "Własne tło z obrazu", "Usunięcie tła: przezroczystość"];
+                                    model: [@tr("No effect"), @tr("Blur background"), @tr("Remove background: color"), @tr("Custom background image"), @tr("Remove background: transparency")];
                                     current-index <=> root.effect-index;
                                     selected => {
                                         root.settings-edited();
                                     }
                                 }
                                 if root.effect-index == 0: Hint {
-                                    text: "Obraz z kamery bez maskowania. Model segmentacji nie jest uruchamiany.";
+                                    text: @tr("The camera image without masking. The segmentation model does not run.");
                                 }
                                 if root.effect-index == 4: Hint {
-                                    text: "Tło dostaje kanał alfa w formacie ARGB32 (np. Meld Studio). Aplikacje, które pobierają NV12 (Discord, przeglądarki, OBS), zobaczą tło w kolorze poniżej.";
+                                    text: @tr("The background gets an alpha channel in ARGB32 (for example Meld Studio). Apps that request NV12 (Discord, browsers, OBS) see the background in the color below.");
                                 }
                             }
                         }
                         if root.effect-index == 1: GroupBox {
-                            title: "Rozmycie";
+                            title: @tr("Blur");
                             VerticalBox {
                                 LabeledSlider {
-                                    label: "Siła rozmycia";
+                                    label: @tr("Blur strength");
                                     value <=> root.blur-strength;
                                     edited => {
                                         root.settings-edited();
                                     }
                                 }
                                 Hint {
-                                    text: "Rozmycie liczone jest na zmniejszonym tle, więc siła prawie nie wpływa na zużycie zasobów.";
+                                    text: @tr("The blur is computed on a downscaled background, so its strength barely affects resource usage.");
                                 }
                             }
                         }
                         if root.effect-index == 2 || root.effect-index == 4: GroupBox {
-                            title: root.effect-index == 2 ? "Kolor tła" : "Kolor tła dla aplikacji bez przezroczystości";
+                            title: root.effect-index == 2 ? @tr("Background color") : @tr("Background color for apps without transparency");
                             VerticalBox {
                                 HorizontalBox {
                                     padding: 0;
@@ -332,25 +332,25 @@ export component MainWindow inherits Window {
                                     }
                                 }
                                 Hint {
-                                    text: "Wpisz dowolny kolor w zapisie szesnastkowym i zatwierdź Enterem.";
+                                    text: @tr("Type any color in hexadecimal and press Enter.");
                                 }
                             }
                         }
                         if root.effect-index == 3: GroupBox {
-                            title: "Obraz tła";
+                            title: @tr("Background image");
                             VerticalBox {
                                 Text {
-                                    text: root.image-path == "" ? "Nie wybrano obrazu" : root.image-path;
+                                    text: root.image-path == "" ? @tr("No image selected") : root.image-path;
                                     wrap: word-wrap;
                                 }
                                 Button {
-                                    text: "Wybierz obraz PNG lub JPEG…";
+                                    text: @tr("Choose a PNG or JPEG image…");
                                     clicked => {
                                         root.choose-image();
                                     }
                                 }
                                 Hint {
-                                    text: "Obraz jest skalowany raz przy zmianie, bez kosztu na każdą klatkę.";
+                                    text: @tr("The image is scaled once when it changes, with no per-frame cost.");
                                 }
                             }
                         }
@@ -359,30 +359,30 @@ export component MainWindow inherits Window {
             }
 
             Tab {
-                title: "Maskowanie";
+                title: @tr("Masking");
                 ScrollView {
                     VerticalBox {
                         alignment: start;
                         GroupBox {
-                            title: "Metoda";
+                            title: @tr("Method");
                             VerticalBox {
                                 ComboBox {
-                                    model: ["RVM – dokładna", "MediaPipe – oszczędna"];
+                                    model: [@tr("RVM – accurate"), @tr("MediaPipe – lightweight")];
                                     current-index <=> root.method-index;
                                     selected => {
                                         root.settings-edited();
                                     }
                                 }
                                 Hint {
-                                    text: root.method-index == 0 ? "Robust Video Matting pamięta poprzednie klatki, dzięki czemu włosy i krawędzie są stabilne. Najlepsza jakość, więcej pracy GPU." : "MediaPipe Selfie Segmentation liczy małą maskę 256×256. Bardzo lekka, ale krawędzie są mniej dokładne i wymagają wygładzania.";
+                                    text: root.method-index == 0 ? @tr("Robust Video Matting remembers previous frames, which keeps hair and edges stable. Best quality, more GPU work.") : @tr("MediaPipe Selfie Segmentation computes a small 256×256 mask. Very light, but edges are less accurate and need smoothing.");
                                 }
                             }
                         }
                         GroupBox {
-                            title: "Jakość i urządzenie";
+                            title: @tr("Quality and device");
                             VerticalBox {
                                 Text {
-                                    text: "Rozdzielczość modelu";
+                                    text: @tr("Model resolution");
                                 }
                                 ComboBox {
                                     enabled: root.method-index == 0;
@@ -393,10 +393,10 @@ export component MainWindow inherits Window {
                                     }
                                 }
                                 Hint {
-                                    text: "Automatycznie: wariant o proporcjach kamery i największej rozdzielczości nie większej niż obraz. Wyższa rozdzielczość daje dokładniejsze krawędzie kosztem GPU.";
+                                    text: @tr("Automatic: the variant with the camera's aspect ratio and the largest resolution not bigger than the image. A higher resolution gives more accurate edges at the cost of GPU time.");
                                 }
                                 Text {
-                                    text: "Urządzenie";
+                                    text: @tr("Device");
                                 }
                                 ComboBox {
                                     model: ["GPU (DirectML)", "CPU"];
@@ -406,42 +406,42 @@ export component MainWindow inherits Window {
                                     }
                                 }
                                 Hint {
-                                    text: "GPU liczy maskę, rozmycie i kompozycję bez obciążania procesora. CPU działa wszędzie, ale zużywa znacznie więcej procesora.";
+                                    text: @tr("The GPU computes the mask, blur and compositing without loading the processor. CPU works everywhere but uses much more processor time.");
                                 }
                             }
                         }
                         GroupBox {
-                            title: "Strojenie maski";
+                            title: @tr("Mask tuning");
                             VerticalBox {
                                 LabeledSlider {
-                                    label: "Próg dolny krawędzi";
+                                    label: @tr("Lower edge threshold");
                                     value <=> root.edge-low;
                                     edited => {
                                         root.settings-edited();
                                     }
                                 }
                                 LabeledSlider {
-                                    label: "Próg górny krawędzi";
+                                    label: @tr("Upper edge threshold");
                                     value <=> root.edge-high;
                                     edited => {
                                         root.settings-edited();
                                     }
                                 }
                                 Hint {
-                                    text: "Zbliżenie progów daje ostrzejszą krawędź i mniej prześwitów tła. Rozsunięcie daje miękkie przejście.";
+                                    text: @tr("Moving the thresholds closer gives a sharper edge and less background showing through. Moving them apart gives a soft transition.");
                                 }
                                 LabeledSlider {
-                                    label: "Wygładzanie czasowe";
+                                    label: @tr("Temporal smoothing");
                                     value <=> root.smoothing;
                                     edited => {
                                         root.settings-edited();
                                     }
                                 }
                                 Hint {
-                                    text: "Uśrednia maskę między klatkami i usuwa migotanie. Za wysoka wartość powoduje smugi przy ruchu. Koszt pomijalny.";
+                                    text: @tr("Averages the mask across frames and removes flicker. Too high a value leaves trails when moving. Negligible cost.");
                                 }
                                 Button {
-                                    text: "Przywróć domyślne dla modelu";
+                                    text: @tr("Restore model defaults");
                                     clicked => {
                                         root.reset-mask();
                                     }
@@ -453,7 +453,7 @@ export component MainWindow inherits Window {
             }
 
             Tab {
-                title: "O programie";
+                title: @tr("About");
                 ScrollView {
                     VerticalBox {
                         alignment: start;
@@ -473,45 +473,45 @@ export component MainWindow inherits Window {
                                     font-weight: 700;
                                 }
                                 Text {
-                                    text: "Wersja " + root.app-version;
+                                    text: @tr("Version {}", root.app-version);
                                     color: #c9ccd1;
                                 }
                                 Text {
-                                    text: "Autor: " + root.app-author;
+                                    text: @tr("Author: {}", root.app-author);
                                     color: #c9ccd1;
                                 }
                             }
                         }
                         Text {
-                            text: "Wirtualna kamera, która usuwa, podmienia lub rozmywa tło obrazu z kamerki. Obraz jest przetwarzany lokalnie na karcie graficznej i nigdzie nie jest wysyłany.";
+                            text: @tr("A virtual camera that removes, replaces or blurs the background of your webcam image. The image is processed locally on the graphics card and never sent anywhere.");
                             wrap: word-wrap;
                         }
                         GroupBox {
-                            title: "Licencja";
+                            title: @tr("License");
                             VerticalBox {
                                 Hint {
-                                    text: "ChromaFree jest wolnym oprogramowaniem na licencji GNU GPL w wersji 3 lub nowszej. Możesz go używać, zmieniać i rozpowszechniać na jej warunkach. Program jest dostarczany bez żadnej gwarancji. Kod źródłowy jest dostępny na stronie projektu.";
+                                    text: @tr("ChromaFree is free software licensed under the GNU GPL version 3 or later. You can use, modify and distribute it under its terms. The program comes with no warranty. The source code is available on the project page.");
                                 }
                             }
                         }
                         GroupBox {
-                            title: "Wykorzystane komponenty";
+                            title: @tr("Third-party components");
                             VerticalBox {
                                 Hint {
-                                    text: "Robust Video Matting (GPL-3.0), MediaPipe Selfie Segmentation (Apache-2.0), ONNX Runtime (MIT), DirectML (Microsoft), Slint (GPL-3.0), windows-rs i tray-icon (MIT/Apache-2.0). Pełna lista z licencjami jest w pliku THIRD_PARTY.md w folderze instalacji.";
+                                    text: @tr("Robust Video Matting (GPL-3.0), MediaPipe Selfie Segmentation (Apache-2.0), ONNX Runtime (MIT), DirectML (Microsoft), Slint (GPL-3.0), windows-rs and tray-icon (MIT/Apache-2.0). The full list with licenses is in THIRD_PARTY.md in the installation folder.");
                                 }
                             }
                         }
                         HorizontalBox {
                             padding: 0;
                             Button {
-                                text: "Strona projektu";
+                                text: @tr("Project page");
                                 clicked => {
                                     root.open-project();
                                 }
                             }
                             Button {
-                                text: "Folder z logami";
+                                text: @tr("Log folder");
                                 clicked => {
                                     root.open-logs();
                                 }

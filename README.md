@@ -50,9 +50,9 @@ want to use.
 
 ## Usage tips
 
-- **Transparent background in Meld Studio:** choose *Usunięcie tła: przezroczystość* (background removal:
-  transparency). Meld Studio keeps the alpha channel; Discord, browsers and OBS receive the fallback color.
+- **Transparent background in Meld Studio:** choose *Remove background: transparency*. Meld Studio keeps the alpha channel; Discord, browsers and OBS receive the fallback color.
 - **Chroma key workflows:** choose the color effect with the green screen preset and key it in your streaming app.
+- **Interface language:** English, or Polish when Windows uses Polish. Set `CHROMAFREE_LANGUAGE=en` or `pl` to override. Translations live in `crates/chromafree-app/translations/<lang>/LC_MESSAGES/chromafree-app.po`.
 - **Changing the output resolution** applies when an app opens the camera again; apps that keep it open continue at their current resolution.
 - The configuration is stored in `%APPDATA%\ChromaFree\config.toml` and reloaded when the file changes.
 - Logs are written to `%LOCALAPPDATA%\ChromaFree\chromafree.log`. The virtual camera source running inside Windows

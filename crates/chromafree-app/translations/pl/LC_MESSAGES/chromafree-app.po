@@ -1,0 +1,202 @@
+msgid ""
+msgstr ""
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+msgid "Live preview"
+msgstr "Podgląd na żywo"
+
+msgid "The preview starts the camera and uses some processor time, so it is off by default."
+msgstr "Podgląd uruchamia kamerę i zużywa trochę procesora, więc domyślnie jest wyłączony."
+
+msgid "Starting the camera…"
+msgstr "Uruchamianie kamery…"
+
+msgid "Preview is off"
+msgstr "Podgląd jest wyłączony"
+
+msgid "Camera"
+msgstr "Kamera"
+
+msgid "Input camera"
+msgstr "Kamera wejściowa"
+
+msgid "Refresh"
+msgstr "Odśwież"
+
+msgid "Camera resolution and frame rate"
+msgstr "Rozdzielczość i klatki kamery"
+
+msgid "Automatic picks the largest resolution up to 1920×1080 that keeps up with the output frame rate. A higher resolution gives better quality but more scaling work."
+msgstr "Automatycznie wybiera największą rozdzielczość do 1920×1080, która nadąża za klatkami wyjścia. Wyższa rozdzielczość to lepsza jakość, ale więcej pracy przy skalowaniu."
+
+msgid "Virtual camera output"
+msgstr "Wyjście wirtualnej kamery"
+
+msgid "The virtual camera offers only this resolution. An app that is already using the camera keeps its current resolution and gets the new one after it turns the camera on again."
+msgstr "Wirtualna kamera wystawia tylko tę rozdzielczość. Aplikacja, która już używa kamery, dostaje obraz w dotychczasowej rozdzielczości, a nową zobaczy po ponownym włączeniu kamery."
+
+msgid "Orientation"
+msgstr "Orientacja"
+
+msgid "No rotation"
+msgstr "Bez obrotu"
+
+msgid "Rotate 90°"
+msgstr "Obrót o 90°"
+
+msgid "Rotate 180°"
+msgstr "Obrót o 180°"
+
+msgid "Rotate 270°"
+msgstr "Obrót o 270°"
+
+msgid "Mirror horizontally"
+msgstr "Odbicie lustrzane w poziomie"
+
+msgid "Mirror vertically"
+msgstr "Odbicie lustrzane w pionie"
+
+msgid "Background"
+msgstr "Tło"
+
+msgid "Effect"
+msgstr "Efekt"
+
+msgid "No effect"
+msgstr "Bez zmian"
+
+msgid "Blur background"
+msgstr "Rozmycie tła"
+
+msgid "Remove background: color"
+msgstr "Usunięcie tła: kolor"
+
+msgid "Custom background image"
+msgstr "Własne tło z obrazu"
+
+msgid "Remove background: transparency"
+msgstr "Usunięcie tła: przezroczystość"
+
+msgid "The camera image without masking. The segmentation model does not run."
+msgstr "Obraz z kamery bez maskowania. Model segmentacji nie jest uruchamiany."
+
+msgid "The background gets an alpha channel in ARGB32 (for example Meld Studio). Apps that request NV12 (Discord, browsers, OBS) see the background in the color below."
+msgstr "Tło dostaje kanał alfa w formacie ARGB32 (np. Meld Studio). Aplikacje, które pobierają NV12 (Discord, przeglądarki, OBS), zobaczą tło w kolorze poniżej."
+
+msgid "Blur"
+msgstr "Rozmycie"
+
+msgid "Blur strength"
+msgstr "Siła rozmycia"
+
+msgid "The blur is computed on a downscaled background, so its strength barely affects resource usage."
+msgstr "Rozmycie liczone jest na zmniejszonym tle, więc siła prawie nie wpływa na zużycie zasobów."
+
+msgid "Background color"
+msgstr "Kolor tła"
+
+msgid "Background color for apps without transparency"
+msgstr "Kolor tła dla aplikacji bez przezroczystości"
+
+msgid "Type any color in hexadecimal and press Enter."
+msgstr "Wpisz dowolny kolor w zapisie szesnastkowym i zatwierdź Enterem."
+
+msgid "Background image"
+msgstr "Obraz tła"
+
+msgid "No image selected"
+msgstr "Nie wybrano obrazu"
+
+msgid "Choose a PNG or JPEG image…"
+msgstr "Wybierz obraz PNG lub JPEG…"
+
+msgid "The image is scaled once when it changes, with no per-frame cost."
+msgstr "Obraz jest skalowany raz przy zmianie, bez kosztu na każdą klatkę."
+
+msgid "Masking"
+msgstr "Maskowanie"
+
+msgid "Method"
+msgstr "Metoda"
+
+msgid "RVM – accurate"
+msgstr "RVM – dokładna"
+
+msgid "MediaPipe – lightweight"
+msgstr "MediaPipe – oszczędna"
+
+msgid "Robust Video Matting remembers previous frames, which keeps hair and edges stable. Best quality, more GPU work."
+msgstr "Robust Video Matting pamięta poprzednie klatki, dzięki czemu włosy i krawędzie są stabilne. Najlepsza jakość, więcej pracy GPU."
+
+msgid "MediaPipe Selfie Segmentation computes a small 256×256 mask. Very light, but edges are less accurate and need smoothing."
+msgstr "MediaPipe Selfie Segmentation liczy małą maskę 256×256. Bardzo lekka, ale krawędzie są mniej dokładne i wymagają wygładzania."
+
+msgid "Quality and device"
+msgstr "Jakość i urządzenie"
+
+msgid "Model resolution"
+msgstr "Rozdzielczość modelu"
+
+msgid "Automatic: the variant with the camera's aspect ratio and the largest resolution not bigger than the image. A higher resolution gives more accurate edges at the cost of GPU time."
+msgstr "Automatycznie: wariant o proporcjach kamery i największej rozdzielczości nie większej niż obraz. Wyższa rozdzielczość daje dokładniejsze krawędzie kosztem GPU."
+
+msgid "Device"
+msgstr "Urządzenie"
+
+msgid "The GPU computes the mask, blur and compositing without loading the processor. CPU works everywhere but uses much more processor time."
+msgstr "GPU liczy maskę, rozmycie i kompozycję bez obciążania procesora. CPU działa wszędzie, ale zużywa znacznie więcej procesora."
+
+msgid "Mask tuning"
+msgstr "Strojenie maski"
+
+msgid "Lower edge threshold"
+msgstr "Próg dolny krawędzi"
+
+msgid "Upper edge threshold"
+msgstr "Próg górny krawędzi"
+
+msgid "Moving the thresholds closer gives a sharper edge and less background showing through. Moving them apart gives a soft transition."
+msgstr "Zbliżenie progów daje ostrzejszą krawędź i mniej prześwitów tła. Rozsunięcie daje miękkie przejście."
+
+msgid "Temporal smoothing"
+msgstr "Wygładzanie czasowe"
+
+msgid "Averages the mask across frames and removes flicker. Too high a value leaves trails when moving. Negligible cost."
+msgstr "Uśrednia maskę między klatkami i usuwa migotanie. Za wysoka wartość powoduje smugi przy ruchu. Koszt pomijalny."
+
+msgid "Restore model defaults"
+msgstr "Przywróć domyślne dla modelu"
+
+msgid "About"
+msgstr "O programie"
+
+msgid "A virtual camera that removes, replaces or blurs the background of your webcam image. The image is processed locally on the graphics card and never sent anywhere."
+msgstr "Wirtualna kamera, która usuwa, podmienia lub rozmywa tło obrazu z kamerki. Obraz jest przetwarzany lokalnie na karcie graficznej i nigdzie nie jest wysyłany."
+
+msgid "License"
+msgstr "Licencja"
+
+msgid "ChromaFree is free software licensed under the GNU GPL version 3 or later. You can use, modify and distribute it under its terms. The program comes with no warranty. The source code is available on the project page."
+msgstr "ChromaFree jest wolnym oprogramowaniem na licencji GNU GPL w wersji 3 lub nowszej. Możesz go używać, zmieniać i rozpowszechniać na jej warunkach. Program jest dostarczany bez żadnej gwarancji. Kod źródłowy jest dostępny na stronie projektu."
+
+msgid "Third-party components"
+msgstr "Wykorzystane komponenty"
+
+msgid "Robust Video Matting (GPL-3.0), MediaPipe Selfie Segmentation (Apache-2.0), ONNX Runtime (MIT), DirectML (Microsoft), Slint (GPL-3.0), windows-rs and tray-icon (MIT/Apache-2.0). The full list with licenses is in THIRD_PARTY.md in the installation folder."
+msgstr "Robust Video Matting (GPL-3.0), MediaPipe Selfie Segmentation (Apache-2.0), ONNX Runtime (MIT), DirectML (Microsoft), Slint (GPL-3.0), windows-rs i tray-icon (MIT/Apache-2.0). Pełna lista z licencjami jest w pliku THIRD_PARTY.md w folderze instalacji."
+
+msgid "Project page"
+msgstr "Strona projektu"
+
+msgid "Log folder"
+msgstr "Folder z logami"
+
+msgid "Version {}"
+msgstr "Wersja {}"
+
+msgid "Author: {}"
+msgstr "Autor: {}"

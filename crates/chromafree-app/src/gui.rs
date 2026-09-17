@@ -25,6 +25,7 @@ use crate::desktop::{
 use crate::engine::{
     Engine, EngineCommand, EngineObserver, EngineOptions, EngineState, EngineStatus, VirtualCameraState,
 };
+use crate::i18n::{Language, tr};
 
 slint::include_modules!();
 
@@ -52,7 +53,9 @@ const EFFECT_MODES: [EffectMode; 5] = [
     EffectMode::Image,
     EffectMode::Transparent,
 ];
-const AUTO: &str = "Automatycznie";
+fn auto_label() -> String {
+    tr("Automatic", "Automatycznie").to_owned()
+}
 
 #[derive(Default)]
 struct PreviewFrame {
@@ -152,29 +155,45 @@ fn render_preview(output: &PipelineOutput<'_>, matrix: ColorMatrix, preview: &mu
     }
 }
 
-pub fn status_lines(status: &EngineStatus) -> (String, String, String, bool) {
+fn fps_label(fps: impl std::fmt::Display, language: Language) -> String {
+    language.pick(format!("{fps} fps"), format!("{fps} kl./s"))
+}
+
+pub fn status_lines(status: &EngineStatus, language: Language) -> (String, String, String, bool) {
+    let pick = |english: &str, polish: &str| language.pick(english, polish).to_owned();
     let headline = match &status.state {
-        EngineState::Idle => "Czeka na aplikację, która użyje kamery ChromaFree".to_owned(),
-        EngineState::Running => match status.latency_ms {
-            Some(latency) => format!(
-                "Działa: {:.0} kl./s, {:.1} ms na klatkę, opóźnienie {:.0} ms",
-                status.fps, status.processing_ms, latency
-            ),
-            None => format!(
-                "Działa: {:.0} kl./s, {:.1} ms na klatkę",
-                status.fps, status.processing_ms
-            ),
-        },
-        EngineState::NoCamera => "Nie wykryto żadnej kamery".to_owned(),
-        EngineState::CameraMissing(name) => {
-            format!("Kamera „{name}” nie jest podłączona. Wybierz inną w zakładce Kamera.")
+        EngineState::Idle => pick(
+            "Waiting for an app to use the ChromaFree camera",
+            "Czeka na aplikację, która użyje kamery ChromaFree",
+        ),
+        EngineState::Running => {
+            let fps = fps_label(format!("{:.0}", status.fps), language);
+            let processing = status.processing_ms;
+            match status.latency_ms {
+                Some(latency) => language.pick(
+                    format!("Running: {fps}, {processing:.1} ms per frame, latency {latency:.0} ms"),
+                    format!("Działa: {fps}, {processing:.1} ms na klatkę, opóźnienie {latency:.0} ms"),
+                ),
+                None => language.pick(
+                    format!("Running: {fps}, {processing:.1} ms per frame"),
+                    format!("Działa: {fps}, {processing:.1} ms na klatkę"),
+                ),
+            }
         }
-        EngineState::CameraBusy => "Kamera jest zajęta przez inną aplikację albo brakuje przepustowości USB. Zamknij program, który używa kamery bezpośrednio, a ChromaFree spróbuje ponownie.".to_owned(),
-        EngineState::Error(error) => format!("Błąd: {error}"),
+        EngineState::NoCamera => pick("No camera detected", "Nie wykryto żadnej kamery"),
+        EngineState::CameraMissing(name) => language.pick(
+            format!("The camera \"{name}\" is not connected. Choose another one on the Camera tab."),
+            format!("Kamera „{name}” nie jest podłączona. Wybierz inną w zakładce Kamera."),
+        ),
+        EngineState::CameraBusy => pick(
+            "The camera is used by another app or there is not enough USB bandwidth. Close the program that uses the camera directly and ChromaFree will try again.",
+            "Kamera jest zajęta przez inną aplikację albo brakuje przepustowości USB. Zamknij program, który używa kamery bezpośrednio, a ChromaFree spróbuje ponownie.",
+        ),
+        EngineState::Error(error) => language.pick(format!("Error: {error}"), format!("Błąd: {error}")),
     };
     let mut details = Vec::new();
     if let Some((name, format)) = &status.camera {
-        details.push(format!("Kamera: {name}, {format}"));
+        details.push(language.pick(format!("Camera: {name}, {format}"), format!("Kamera: {name}, {format}")));
     }
     if let Some(backend) = &status.backend {
         details.push(backend.clone());
@@ -183,20 +202,25 @@ pub fn status_lines(status: &EngineStatus) -> (String, String, String, bool) {
         details.push(format!("Model: {model}"));
     }
     match status.consumer_format {
-        Some(PixelFormat::Nv12) => details.push("Odbiorca: NV12".to_owned()),
-        Some(PixelFormat::Bgra) => details.push("Odbiorca: ARGB32 z przezroczystością".to_owned()),
+        Some(PixelFormat::Nv12) => details.push(pick("Consumer: NV12", "Odbiorca: NV12")),
+        Some(PixelFormat::Bgra) => details.push(pick(
+            "Consumer: ARGB32 with transparency",
+            "Odbiorca: ARGB32 z przezroczystością",
+        )),
         None => {}
     }
     if let Some(warning) = &status.warning {
-        details.push(format!("Uwaga: {warning}"));
+        details.push(language.pick(format!("Warning: {warning}"), format!("Uwaga: {warning}")));
     }
     let virtual_camera = match &status.virtual_camera {
         VirtualCameraState::Disabled => String::new(),
-        VirtualCameraState::Registered => {
-            "Wirtualna kamera „ChromaFree” jest dostępna w innych aplikacjach.".to_owned()
-        }
-        VirtualCameraState::Unavailable(error) => format!(
-            "Wirtualna kamera jest niedostępna. Zainstaluj vcam-source.dll poleceniem vcam-source\\install.ps1 uruchomionym jako administrator. ({error})"
+        VirtualCameraState::Registered => pick(
+            "The \"ChromaFree\" virtual camera is available in other apps.",
+            "Wirtualna kamera „ChromaFree” jest dostępna w innych aplikacjach.",
+        ),
+        VirtualCameraState::Unavailable(error) => language.pick(
+            format!("The virtual camera is unavailable. Reinstall ChromaFree to register vcam-source.dll. ({error})"),
+            format!("Wirtualna kamera jest niedostępna. Zainstaluj ChromaFree ponownie, aby zarejestrować vcam-source.dll. ({error})"),
         ),
     };
     let problem = !matches!(status.state, EngineState::Idle | EngineState::Running)
@@ -276,8 +300,8 @@ pub fn run(config: Config, config_path: PathBuf, models_dir: PathBuf, show_windo
         GuiObserver(Arc::clone(&shared)),
     )?;
 
-    let show = MenuItem::new("Pokaż okno", true, None);
-    let quit = MenuItem::new("Zakończ", true, None);
+    let show = MenuItem::new(tr("Show window", "Pokaż okno"), true, None);
+    let quit = MenuItem::new(tr("Quit", "Zakończ"), true, None);
     let menu = Menu::new();
     menu.append_items(&[&show, &quit])?;
     let tray = TrayIconBuilder::new()
@@ -352,10 +376,18 @@ impl App {
                 return;
             }
         };
+        let language = Language::current();
+        if language != Language::English
+            && let Err(error) = slint::select_bundled_translation(language.code())
+        {
+            tracing::warn!(%error, "selecting the interface language failed");
+        }
         window.set_output_names(strings(OUTPUT_PRESETS.iter().map(|(w, h)| format!("{w}×{h}"))));
-        window.set_fps_names(strings(FPS_PRESETS.iter().map(|fps| format!("{fps} kl./s"))));
+        window.set_fps_names(strings(
+            FPS_PRESETS.iter().map(|fps| fps_label(fps, Language::current())),
+        ));
         window.set_quality_names(strings(
-            std::iter::once(AUTO.to_owned()).chain(
+            std::iter::once(auto_label()).chain(
                 self.variants
                     .iter()
                     .map(|v| format!("{}×{} {}", v.width, v.height, aspect_label(*v))),
@@ -419,7 +451,7 @@ impl App {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .clone();
-        let (headline, details, virtual_camera, problem) = status_lines(&status);
+        let (headline, details, virtual_camera, problem) = status_lines(&status, Language::current());
         window.set_status_text(headline.into());
         window.set_detail_text(details.into());
         window.set_virtual_camera_text(virtual_camera.into());
@@ -457,7 +489,7 @@ impl App {
                 Some(index) => index,
                 None => {
                     let name = self.config.camera.name.clone().unwrap_or_else(|| link.clone());
-                    names.push(format!("{name} (niepodłączona)"));
+                    names.push(format!("{name} ({})", tr("not connected", "niepodłączona")));
                     names.len() - 1
                 }
             },
@@ -466,8 +498,16 @@ impl App {
             self.cameras.is_empty(),
             configured.is_some() && index == self.cameras.len(),
         ) {
-            (true, _) => "Nie wykryto żadnej kamery. Podłącz kamerę i kliknij Odśwież.".to_owned(),
-            (false, true) => "Zapamiętana kamera nie jest podłączona. Podłącz ją albo wybierz inną.".to_owned(),
+            (true, _) => tr(
+                "No camera detected. Connect a camera and click Refresh.",
+                "Nie wykryto żadnej kamery. Podłącz kamerę i kliknij Odśwież.",
+            )
+            .to_owned(),
+            (false, true) => tr(
+                "The saved camera is not connected. Connect it or choose another one.",
+                "Zapamiętana kamera nie jest podłączona. Podłącz ją albo wybierz inną.",
+            )
+            .to_owned(),
             _ => String::new(),
         };
         window.set_camera_names(strings(names));
@@ -496,7 +536,7 @@ impl App {
             .and_then(|format| self.formats.iter().position(|f| *f == format.to_capture()))
             .map_or(0, |index| index + 1);
         window.set_format_names(strings(
-            std::iter::once(AUTO.to_owned()).chain(self.formats.iter().map(ToString::to_string)),
+            std::iter::once(auto_label()).chain(self.formats.iter().map(ToString::to_string)),
         ));
         window.set_format_index(index as i32);
     }
@@ -722,21 +762,23 @@ mod tests {
     use chromafree_core::{BgraFrame, FrameSize};
 
     #[test]
-    fn status_lines_describe_problems_in_polish() {
+    fn status_lines_describe_problems_in_each_language() {
         let mut status = EngineStatus {
             state: EngineState::CameraMissing("OBSBOT".to_owned()),
             virtual_camera: VirtualCameraState::Registered,
             ..EngineStatus::default()
         };
-        let (headline, _, virtual_camera, problem) = status_lines(&status);
+        let (headline, _, virtual_camera, problem) = status_lines(&status, Language::Polish);
         assert!(headline.contains("OBSBOT"));
         assert!(virtual_camera.contains("dostępna"));
         assert!(problem);
+        let (_, _, virtual_camera, _) = status_lines(&status, Language::English);
+        assert!(virtual_camera.contains("available"));
 
         status.state = EngineState::Running;
         status.fps = 30.0;
         status.consumer_format = Some(PixelFormat::Bgra);
-        let (headline, details, _, problem) = status_lines(&status);
+        let (headline, details, _, problem) = status_lines(&status, Language::Polish);
         assert!(headline.contains("30 kl./s"));
         assert!(details.contains("ARGB32"));
         assert!(!problem);

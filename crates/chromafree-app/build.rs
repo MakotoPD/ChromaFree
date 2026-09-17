@@ -74,5 +74,9 @@ fn main() {
             .manifest_optional()
             .expect("compiling chromafree.rc");
     }
-    slint_build::compile("ui/main.slint").expect("compiling ui/main.slint");
+    println!("cargo:rerun-if-changed=translations");
+    let config = slint_build::CompilerConfiguration::new()
+        .with_bundled_translations("translations")
+        .with_default_translation_context(slint_build::DefaultTranslationContext::None);
+    slint_build::compile_with_config("ui/main.slint", config).expect("compiling ui/main.slint");
 }

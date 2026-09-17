@@ -12,6 +12,7 @@ use chromafree_app::config::Config;
 use chromafree_app::desktop::{SingleInstance, log_directory};
 use chromafree_app::engine::{Engine, EngineObserver, EngineOptions, EngineStatus};
 use chromafree_app::gui;
+use chromafree_app::i18n::tr;
 use chromafree_app::virtual_camera::{install_system_camera, uninstall_system_camera};
 use chromafree_capture::MediaFoundation;
 use chromafree_core::{ColorMatrix, PipelineOutput};
@@ -89,7 +90,10 @@ fn main() {
         let log = log_path
             .map(|path| format!("\n\nLog: {}", path.display()))
             .unwrap_or_default();
-        let text = HSTRING::from(format!("ChromaFree nie może działać:\n{error:#}{log}"));
+        let text = HSTRING::from(format!(
+            "{}\n{error:#}{log}",
+            tr("ChromaFree cannot run:", "ChromaFree nie może działać:")
+        ));
         unsafe { MessageBoxW(None, &text, &HSTRING::from("ChromaFree"), MB_OK | MB_ICONERROR) };
     }
 }

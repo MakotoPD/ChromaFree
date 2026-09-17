@@ -18,7 +18,9 @@ use windows::Win32::UI::Shell::{
     SHGetKnownFolderPath, SIGDN_FILESYSPATH, ShellExecuteW,
 };
 use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
-use windows::core::{GUID, HRESULT, HSTRING, w};
+use windows::core::{GUID, HRESULT, HSTRING, PCWSTR, w};
+
+use crate::i18n::tr;
 
 pub struct SingleInstance(HANDLE);
 
@@ -43,13 +45,15 @@ impl Drop for SingleInstance {
 pub fn pick_background_image() -> Result<Option<PathBuf>> {
     let _ = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };
     let dialog: IFileOpenDialog = unsafe { CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER) }?;
+    let filter_name = HSTRING::from(tr("PNG and JPEG images", "Obrazy PNG i JPEG"));
+    let title = HSTRING::from(tr("Choose a background image", "Wybierz obraz tła"));
     let filters = [COMDLG_FILTERSPEC {
-        pszName: w!("Obrazy PNG i JPEG"),
+        pszName: PCWSTR(filter_name.as_ptr()),
         pszSpec: w!("*.png;*.jpg;*.jpeg"),
     }];
     unsafe {
         dialog.SetFileTypes(&filters)?;
-        dialog.SetTitle(w!("Wybierz obraz tła"))?;
+        dialog.SetTitle(&title)?;
     }
     if let Err(error) = unsafe { dialog.Show(None) } {
         if error.code() == HRESULT::from_win32(ERROR_CANCELLED.0) {
