@@ -17,11 +17,11 @@ namespace spike
     inline constexpr uint32_t ConsumerActive = 1;
     inline constexpr uint32_t ProducerActive = 2;
 
-    inline constexpr wchar_t AppProbeGlobalName[] = L"Global\\bgcam-spike-app-probe";
-    inline constexpr wchar_t AppSectionBaseName[] = L"bgcam-spike-app-section";
-    inline constexpr wchar_t AppEventBaseName[] = L"bgcam-spike-app-event";
-    inline constexpr wchar_t DllSectionName[] = L"Global\\bgcam-spike-dll-section";
-    inline constexpr wchar_t DllEventName[] = L"Global\\bgcam-spike-dll-event";
+    inline constexpr wchar_t AppProbeGlobalName[] = L"Global\\chromafree-spike-app-probe";
+    inline constexpr wchar_t AppSectionBaseName[] = L"chromafree-spike-app-section";
+    inline constexpr wchar_t AppEventBaseName[] = L"chromafree-spike-app-event";
+    inline constexpr wchar_t DllSectionName[] = L"Global\\chromafree-spike-dll-section";
+    inline constexpr wchar_t DllEventName[] = L"Global\\chromafree-spike-dll-event";
     inline constexpr wchar_t SharedObjectSddl[] = L"D:P(A;;GA;;;SY)(A;;GA;;;LS)(A;;GA;;;IU)";
 
     struct Header

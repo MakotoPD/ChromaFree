@@ -7,8 +7,8 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $buildDir = Join-Path $repoRoot 'build\vcam-spike\Release'
-$installDir = Join-Path $env:ProgramFiles 'bgcam-spike'
-$logDir = Join-Path $env:ProgramData 'bgcam-spike'
+$installDir = Join-Path $env:ProgramFiles 'chromafree-spike'
+$logDir = Join-Path $env:ProgramData 'chromafree-spike'
 $dll = Join-Path $installDir 'vcam-spike.dll'
 
 foreach ($file in 'vcam-spike.dll', 'vcam-spike-register.exe') {

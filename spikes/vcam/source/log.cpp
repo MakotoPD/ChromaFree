@@ -6,9 +6,9 @@ namespace
     std::wstring LogFilePath()
     {
         std::array<wchar_t, MAX_PATH> buffer{};
-        if (GetEnvironmentVariableW(L"BGCAM_SPIKE_LOG_DIR", buffer.data(), static_cast<DWORD>(buffer.size())) == 0)
+        if (GetEnvironmentVariableW(L"CHROMAFREE_SPIKE_LOG_DIR", buffer.data(), static_cast<DWORD>(buffer.size())) == 0)
         {
-            ExpandEnvironmentStringsW(L"%ProgramData%\\bgcam-spike", buffer.data(), static_cast<DWORD>(buffer.size()));
+            ExpandEnvironmentStringsW(L"%ProgramData%\\chromafree-spike", buffer.data(), static_cast<DWORD>(buffer.size()));
         }
         return std::format(L"{}\\vcam-{}.log", buffer.data(), GetCurrentProcessId());
     }

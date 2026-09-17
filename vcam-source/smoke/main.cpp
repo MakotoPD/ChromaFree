@@ -112,7 +112,7 @@ int wmain(int argc, wchar_t** argv)
         THROW_LAST_ERROR_IF_NULL(getClassObject);
 
         wil::com_ptr<IClassFactory> factory;
-        THROW_IF_FAILED(getClassObject(CLSID_BgcamCamera, IID_IClassFactory, factory.put_void()));
+        THROW_IF_FAILED(getClassObject(CLSID_ChromaFreeCamera, IID_IClassFactory, factory.put_void()));
         wil::com_ptr<IMFActivate> activate;
         THROW_IF_FAILED(factory->CreateInstance(nullptr, IID_PPV_ARGS(&activate)));
         wil::com_ptr<IMFMediaSource> source;

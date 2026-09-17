@@ -5,7 +5,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     throw 'Run this script from an elevated PowerShell (Run as administrator).'
 }
 
-$installDir = Join-Path $env:ProgramFiles 'bgcam'
+$installDir = Join-Path $env:ProgramFiles 'ChromaFree'
 $dll = Join-Path $installDir 'vcam-source.dll'
 
 if (Test-Path $dll) {

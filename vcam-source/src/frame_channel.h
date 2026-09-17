@@ -46,7 +46,7 @@ public:
 private:
     void Close();
     void SignalConsumerChanged() const;
-    BgcamFrameHeader* Header() const;
+    ChromaFreeFrameHeader* Header() const;
 
     DWORD _sessionId;
     wil::unique_handle _section;

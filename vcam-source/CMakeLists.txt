@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(bgcam_vcam_source LANGUAGES CXX)
+project(chromafree_vcam_source LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,8 +17,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(wil)
 
-set(BGCAM_COMPILE_OPTIONS /W4 /WX /permissive- /EHsc /utf-8 /external:anglebrackets /external:W0)
-set(BGCAM_DEFINITIONS UNICODE _UNICODE)
+set(CHROMAFREE_COMPILE_OPTIONS /W4 /WX /permissive- /EHsc /utf-8 /external:anglebrackets /external:W0)
+set(CHROMAFREE_DEFINITIONS UNICODE _UNICODE)
 
 add_library(vcam-source SHARED
     src/dllmain.cpp
@@ -28,12 +28,12 @@ add_library(vcam-source SHARED
     src/vcam-source.def
 )
 target_precompile_headers(vcam-source PRIVATE src/pch.h)
-target_include_directories(vcam-source SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../crates/bgcam-ipc/include)
-target_compile_options(vcam-source PRIVATE ${BGCAM_COMPILE_OPTIONS})
-target_compile_definitions(vcam-source PRIVATE ${BGCAM_DEFINITIONS})
+target_include_directories(vcam-source SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../crates/chromafree-ipc/include)
+target_compile_options(vcam-source PRIVATE ${CHROMAFREE_COMPILE_OPTIONS})
+target_compile_definitions(vcam-source PRIVATE ${CHROMAFREE_DEFINITIONS})
 target_link_libraries(vcam-source PRIVATE WIL::WIL mfplat mfuuid mfsensorgroup wtsapi32 propsys windowsapp)
 
 add_executable(vcam-source-smoke smoke/main.cpp)
-target_compile_options(vcam-source-smoke PRIVATE ${BGCAM_COMPILE_OPTIONS})
-target_compile_definitions(vcam-source-smoke PRIVATE ${BGCAM_DEFINITIONS})
+target_compile_options(vcam-source-smoke PRIVATE ${CHROMAFREE_COMPILE_OPTIONS})
+target_compile_definitions(vcam-source-smoke PRIVATE ${CHROMAFREE_DEFINITIONS})
 target_link_libraries(vcam-source-smoke PRIVATE WIL::WIL mfplat mfuuid ole32)

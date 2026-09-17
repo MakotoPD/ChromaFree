@@ -1,0 +1,17 @@
+[package]
+name = "chromafree-gpu"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+chromafree-core.workspace = true
+half.workspace = true
+ort.workspace = true
+thiserror.workspace = true
+windows = { workspace = true }
+
+[dev-dependencies]
+image.workspace = true

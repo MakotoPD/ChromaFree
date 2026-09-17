@@ -19,18 +19,18 @@ namespace
         const auto pixels = static_cast<size_t>(width) * height;
         switch (format)
         {
-        case BGCAM_FORMAT_NV12:
+        case CHROMAFREE_FORMAT_NV12:
             return pixels * 3 / 2;
-        case BGCAM_FORMAT_BGRA:
+        case CHROMAFREE_FORMAT_BGRA:
             return pixels * 4;
         default:
             return 0;
         }
     }
 
-    const uint8_t* FrameData(const BgcamFrameHeader* header)
+    const uint8_t* FrameData(const ChromaFreeFrameHeader* header)
     {
-        return reinterpret_cast<const uint8_t*>(header) + BGCAM_HEADER_SIZE;
+        return reinterpret_cast<const uint8_t*>(header) + CHROMAFREE_HEADER_SIZE;
     }
 
     uint8_t* Row(const FrameTarget& target, uint32_t row)
@@ -60,7 +60,7 @@ int64_t QpcFrequency()
 
 void CopyFrame(const FrameTarget& target, const uint8_t* source)
 {
-    if (target.format == BGCAM_FORMAT_NV12)
+    if (target.format == CHROMAFREE_FORMAT_NV12)
     {
         for (uint32_t y = 0; y < target.height + target.height / 2; y++)
         {
@@ -77,7 +77,7 @@ void CopyFrame(const FrameTarget& target, const uint8_t* source)
 
 void FillFallback(const FrameTarget& target)
 {
-    if (target.format == BGCAM_FORMAT_NV12)
+    if (target.format == CHROMAFREE_FORMAT_NV12)
     {
         for (uint32_t y = 0; y < target.height; y++)
         {
@@ -116,9 +116,9 @@ bool FrameChannel::IsOpen() const
     return _view != nullptr;
 }
 
-BgcamFrameHeader* FrameChannel::Header() const
+ChromaFreeFrameHeader* FrameChannel::Header() const
 {
-    return static_cast<BgcamFrameHeader*>(_view.get());
+    return static_cast<ChromaFreeFrameHeader*>(_view.get());
 }
 
 HANDLE FrameChannel::FrameReadyEvent() const
@@ -140,20 +140,20 @@ bool FrameChannel::Open()
     {
         return true;
     }
-    _section.reset(OpenFileMappingW(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, SessionName(_sessionId, BGCAM_SECTION_NAME).c_str()));
+    _section.reset(OpenFileMappingW(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, SessionName(_sessionId, CHROMAFREE_SECTION_NAME).c_str()));
     if (!_section)
     {
         return false;
     }
-    _view.reset(MapViewOfFile(_section.get(), FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, BGCAM_SECTION_SIZE));
-    _frameReady.reset(OpenEventW(SYNCHRONIZE, FALSE, SessionName(_sessionId, BGCAM_FRAME_READY_EVENT_NAME).c_str()));
-    _consumerChanged.reset(OpenEventW(EVENT_MODIFY_STATE, FALSE, SessionName(_sessionId, BGCAM_CONSUMER_CHANGED_EVENT_NAME).c_str()));
+    _view.reset(MapViewOfFile(_section.get(), FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, CHROMAFREE_SECTION_SIZE));
+    _frameReady.reset(OpenEventW(SYNCHRONIZE, FALSE, SessionName(_sessionId, CHROMAFREE_FRAME_READY_EVENT_NAME).c_str()));
+    _consumerChanged.reset(OpenEventW(EVENT_MODIFY_STATE, FALSE, SessionName(_sessionId, CHROMAFREE_CONSUMER_CHANGED_EVENT_NAME).c_str()));
     const auto* header = Header();
-    const bool compatible = header && _frameReady && _consumerChanged && Load(header->magic) == BGCAM_MAGIC &&
-                            Load(header->version) == BGCAM_PROTOCOL_VERSION && Load(header->header_size) == BGCAM_HEADER_SIZE;
+    const bool compatible = header && _frameReady && _consumerChanged && Load(header->magic) == CHROMAFREE_MAGIC &&
+                            Load(header->version) == CHROMAFREE_PROTOCOL_VERSION && Load(header->header_size) == CHROMAFREE_HEADER_SIZE;
     if (!compatible)
     {
-        LOG_HR_MSG(HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH), "bgcam shared memory in session %lu is unusable", _sessionId);
+        LOG_HR_MSG(HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH), "chromafree shared memory in session %lu is unusable", _sessionId);
         Close();
         return false;
     }
@@ -168,8 +168,8 @@ std::optional<OutputMode> FrameChannel::Mode() const
     }
     const auto* header = Header();
     const OutputMode mode{ Load(header->output_width), Load(header->output_height), Load(header->output_fps_numerator), Load(header->output_fps_denominator) };
-    const bool valid = mode.width >= 2 && mode.height >= 2 && mode.width % 2 == 0 && mode.height % 2 == 0 && mode.width <= BGCAM_MAX_WIDTH &&
-                       mode.height <= BGCAM_MAX_HEIGHT && mode.fpsNumerator > 0 && mode.fpsDenominator > 0;
+    const bool valid = mode.width >= 2 && mode.height >= 2 && mode.width % 2 == 0 && mode.height % 2 == 0 && mode.width <= CHROMAFREE_MAX_WIDTH &&
+                       mode.height <= CHROMAFREE_MAX_HEIGHT && mode.fpsNumerator > 0 && mode.fpsDenominator > 0;
     return valid ? std::optional(mode) : std::nullopt;
 }
 
@@ -187,7 +187,7 @@ void FrameChannel::ConsumerStarted(uint32_t format)
     auto* header = Header();
     InterlockedExchange(AsLong(header->consumer_format), static_cast<LONG>(format));
     InterlockedIncrement(AsLong(header->consumer_count));
-    InterlockedOr(AsLong(header->consumer_flags), BGCAM_CONSUMER_ACTIVE);
+    InterlockedOr(AsLong(header->consumer_flags), CHROMAFREE_CONSUMER_ACTIVE);
     Heartbeat();
     _consuming = true;
     SignalConsumerChanged();
@@ -208,7 +208,7 @@ void FrameChannel::ConsumerStopped()
     } while (InterlockedCompareExchange(count, previous > 0 ? previous - 1 : 0, previous) != previous);
     if (previous <= 1)
     {
-        InterlockedAnd(AsLong(header->consumer_flags), ~static_cast<LONG>(BGCAM_CONSUMER_ACTIVE));
+        InterlockedAnd(AsLong(header->consumer_flags), ~static_cast<LONG>(CHROMAFREE_CONSUMER_ACTIVE));
     }
     _consuming = false;
     SignalConsumerChanged();
@@ -230,8 +230,8 @@ bool FrameChannel::ProducerAlive() const
     }
     const auto* header = Header();
     const auto heartbeat = Load(header->producer_heartbeat_qpc);
-    const auto timeout = std::max<int64_t>(Load(header->qpc_frequency), 1) * BGCAM_HEARTBEAT_TIMEOUT_MS / 1000;
-    return (Load(header->producer_flags) & BGCAM_PRODUCER_ACTIVE) != 0 && heartbeat != 0 && QpcNow() - heartbeat <= timeout;
+    const auto timeout = std::max<int64_t>(Load(header->qpc_frequency), 1) * CHROMAFREE_HEARTBEAT_TIMEOUT_MS / 1000;
+    return (Load(header->producer_flags) & CHROMAFREE_PRODUCER_ACTIVE) != 0 && heartbeat != 0 && QpcNow() - heartbeat <= timeout;
 }
 
 std::optional<DeliveredFrame> FrameChannel::CopyLatest(const FrameTarget& target) const
@@ -242,7 +242,7 @@ std::optional<DeliveredFrame> FrameChannel::CopyLatest(const FrameTarget& target
     }
     const auto* header = Header();
     const auto expectedBytes = FrameBytes(target.format, target.width, target.height);
-    for (uint32_t attempt = 0; attempt < BGCAM_SEQLOCK_ATTEMPTS; attempt++)
+    for (uint32_t attempt = 0; attempt < CHROMAFREE_SEQLOCK_ATTEMPTS; attempt++)
     {
         const auto before = Load(header->sequence);
         if (before == 0)
@@ -256,7 +256,7 @@ std::optional<DeliveredFrame> FrameChannel::CopyLatest(const FrameTarget& target
         }
         const bool matches = Load(header->frame_format) == target.format && Load(header->frame_width) == target.width &&
                              Load(header->frame_height) == target.height && Load(header->frame_size) == expectedBytes &&
-                             expectedBytes <= BGCAM_FRAME_CAPACITY;
+                             expectedBytes <= CHROMAFREE_FRAME_CAPACITY;
         const DeliveredFrame frame{ Load(header->frame_number), Load(header->frame_qpc) };
         if (matches)
         {

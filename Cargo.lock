@@ -493,77 +493,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
-name = "bgcam-app"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bgcam-capture",
- "bgcam-core",
- "bgcam-gpu",
- "bgcam-ipc",
- "serde",
- "slint",
- "slint-build",
- "thiserror 2.0.20",
- "toml 0.9.12+spec-1.1.0",
- "tracing",
- "tracing-subscriber",
- "tray-icon",
- "windows",
-]
-
-[[package]]
-name = "bgcam-capture"
-version = "0.1.0"
-dependencies = [
- "bgcam-core",
- "bgcam-ipc",
- "thiserror 2.0.20",
- "windows",
-]
-
-[[package]]
-name = "bgcam-core"
-version = "0.1.0"
-dependencies = [
- "criterion",
- "half",
- "image",
- "ort",
- "thiserror 2.0.20",
-]
-
-[[package]]
-name = "bgcam-gpu"
-version = "0.1.0"
-dependencies = [
- "bgcam-core",
- "half",
- "image",
- "ort",
- "thiserror 2.0.20",
- "windows",
-]
-
-[[package]]
-name = "bgcam-ipc"
-version = "0.1.0"
-dependencies = [
- "cbindgen",
- "thiserror 2.0.20",
- "windows",
-]
-
-[[package]]
-name = "bgcam-probe"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bgcam-ipc",
- "windows",
-]
-
-[[package]]
 name = "bincode"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -852,6 +781,77 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ced0551234e87afee12411d535648dd89d2e7f34c78b753395567aff3d447ff"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "chromafree-app"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chromafree-capture",
+ "chromafree-core",
+ "chromafree-gpu",
+ "chromafree-ipc",
+ "serde",
+ "slint",
+ "slint-build",
+ "thiserror 2.0.20",
+ "toml 0.9.12+spec-1.1.0",
+ "tracing",
+ "tracing-subscriber",
+ "tray-icon",
+ "windows",
+]
+
+[[package]]
+name = "chromafree-capture"
+version = "0.1.0"
+dependencies = [
+ "chromafree-core",
+ "chromafree-ipc",
+ "thiserror 2.0.20",
+ "windows",
+]
+
+[[package]]
+name = "chromafree-core"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "half",
+ "image",
+ "ort",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "chromafree-gpu"
+version = "0.1.0"
+dependencies = [
+ "chromafree-core",
+ "half",
+ "image",
+ "ort",
+ "thiserror 2.0.20",
+ "windows",
+]
+
+[[package]]
+name = "chromafree-ipc"
+version = "0.1.0"
+dependencies = [
+ "cbindgen",
+ "thiserror 2.0.20",
+ "windows",
+]
+
+[[package]]
+name = "chromafree-probe"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chromafree-ipc",
+ "windows",
 ]
 
 [[package]]

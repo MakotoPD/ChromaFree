@@ -7,7 +7,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 $built = Join-Path $repoRoot 'build\vcam\Release\vcam-source.dll'
-$installDir = Join-Path $env:ProgramFiles 'bgcam'
+$installDir = Join-Path $env:ProgramFiles 'ChromaFree'
 $dll = Join-Path $installDir 'vcam-source.dll'
 
 if (-not (Test-Path $built)) { throw "Missing $built - build vcam-source first." }

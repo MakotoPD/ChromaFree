@@ -9,7 +9,7 @@ publish = false
 [dependencies]
 anyhow = "1"
 half = "2"
-bgcam-core = { path = "../../crates/bgcam-core" }
+chromafree-core = { path = "../../crates/chromafree-core" }
 ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "download-binaries", "copy-dylibs", "tls-native", "api-27", "directml", "half", "preload-dylibs"] }
 windows = { version = "0.62", features = [
     "Win32_Foundation",

@@ -31,7 +31,7 @@
 #include <wil/win32_helpers.h>
 #include <winrt/base.h>
 
-#include <bgcam_ipc.h>
+#include <chromafree_ipc.h>
 
 namespace winrt
 {

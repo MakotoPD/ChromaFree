@@ -37,7 +37,7 @@ struct Activator : winrt::implements<Activator, AttributesBase<IMFActivate>>
     HRESULT Initialize()
     {
         RETURN_IF_FAILED(SetUINT32(MF_VIRTUALCAMERA_PROVIDE_ASSOCIATED_CAMERA_SOURCES, 1));
-        return SetGUID(MFT_TRANSFORM_CLSID_Attribute, CLSID_BgcamCamera);
+        return SetGUID(MFT_TRANSFORM_CLSID_Attribute, CLSID_ChromaFreeCamera);
     }
 
     STDMETHODIMP ActivateObject(REFIID iid, void** object) override
@@ -132,7 +132,7 @@ STDAPI DllGetClassObject(REFCLSID clsid, REFIID iid, LPVOID* object)
 {
     RETURN_HR_IF_NULL(E_POINTER, object);
     *object = nullptr;
-    RETURN_HR_IF(CLASS_E_CLASSNOTAVAILABLE, clsid != CLSID_BgcamCamera);
+    RETURN_HR_IF(CLASS_E_CLASSNOTAVAILABLE, clsid != CLSID_ChromaFreeCamera);
     try
     {
         return winrt::make<ClassFactory>().as<IUnknown>()->QueryInterface(iid, object);
@@ -145,7 +145,7 @@ STDAPI DllRegisterServer()
     try
     {
         const auto modulePath = wil::GetModuleFileNameW<std::wstring>(g_module);
-        const auto keyPath = std::format(L"Software\\Classes\\CLSID\\{}\\InprocServer32", BgcamCameraClsidString);
+        const auto keyPath = std::format(L"Software\\Classes\\CLSID\\{}\\InprocServer32", ChromaFreeCameraClsidString);
         wil::unique_hkey key;
         RETURN_IF_WIN32_ERROR(RegCreateKeyExW(HKEY_LOCAL_MACHINE, keyPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &key, nullptr));
         RETURN_IF_WIN32_ERROR(RegSetValueExW(key.get(), nullptr, 0, REG_SZ, reinterpret_cast<const BYTE*>(modulePath.c_str()), static_cast<DWORD>((modulePath.size() + 1) * sizeof(wchar_t))));
@@ -158,7 +158,7 @@ STDAPI DllRegisterServer()
 
 STDAPI DllUnregisterServer()
 {
-    const auto keyPath = std::format(L"Software\\Classes\\CLSID\\{}", BgcamCameraClsidString);
+    const auto keyPath = std::format(L"Software\\Classes\\CLSID\\{}", ChromaFreeCameraClsidString);
     const auto status = RegDeleteTreeW(HKEY_LOCAL_MACHINE, keyPath.c_str());
     RETURN_HR_IF(HRESULT_FROM_WIN32(status), status != ERROR_SUCCESS && status != ERROR_FILE_NOT_FOUND);
     return S_OK;

@@ -46,11 +46,11 @@ const CONSUMER_TIMEOUT: Duration = Duration::from_secs(3);
 const PROBE_INTERVAL: Duration = Duration::from_millis(500);
 const STATS_INTERVAL: Duration = Duration::from_secs(5);
 
-const APP_PROBE_GLOBAL_NAME: &str = r"Global\bgcam-spike-app-probe";
-const APP_SECTION_NAME: &str = r"Local\bgcam-spike-app-section";
-const APP_EVENT_NAME: &str = r"Local\bgcam-spike-app-event";
-const DLL_SECTION_NAME: &str = r"Global\bgcam-spike-dll-section";
-const DLL_EVENT_NAME: &str = r"Global\bgcam-spike-dll-event";
+const APP_PROBE_GLOBAL_NAME: &str = r"Global\chromafree-spike-app-probe";
+const APP_SECTION_NAME: &str = r"Local\chromafree-spike-app-section";
+const APP_EVENT_NAME: &str = r"Local\chromafree-spike-app-event";
+const DLL_SECTION_NAME: &str = r"Global\chromafree-spike-dll-section";
+const DLL_EVENT_NAME: &str = r"Global\chromafree-spike-dll-event";
 const SHARED_OBJECT_SDDL: &str = "D:P(A;;GA;;;SY)(A;;GA;;;LS)(A;;GA;;;IU)";
 
 #[repr(C)]

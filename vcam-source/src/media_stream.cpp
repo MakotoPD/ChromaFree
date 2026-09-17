@@ -81,7 +81,7 @@ HRESULT MediaStream::Start(IMFMediaType* type)
 
     const auto frequency = QpcFrequency();
     const StreamFormat format{
-        subtype == MFVideoFormat_NV12 ? static_cast<uint32_t>(BGCAM_FORMAT_NV12) : static_cast<uint32_t>(BGCAM_FORMAT_BGRA),
+        subtype == MFVideoFormat_NV12 ? static_cast<uint32_t>(CHROMAFREE_FORMAT_NV12) : static_cast<uint32_t>(CHROMAFREE_FORMAT_BGRA),
         width,
         height,
         frequency * denominator / numerator,

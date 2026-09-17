@@ -6,7 +6,7 @@ use std::ptr::NonNull;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow, bail};
-use bgcam_core::{
+use chromafree_core::{
     Background, BgraFrame, ColorMatrix, FrameSize, MaskParams, MaskRefiner, ModelVariant, Nv12Frame, Orientation, Rgb,
     RgbImage, RvmModel, SegmentationModel, blend_nv12, nv12_to_bgra,
 };
@@ -145,7 +145,7 @@ fn save_png(frame: &Nv12Frame, path: &Path) -> Result<()> {
 
 fn cpu_reference(models: &Path, inputs: &[Nv12Frame; 2], count: usize) -> Result<Nv12Frame> {
     let size = inputs[0].size();
-    let mut model = RvmModel::load(models, MODEL, bgcam_core::InferenceDevice::default())?;
+    let mut model = RvmModel::load(models, MODEL, chromafree_core::InferenceDevice::default())?;
     let mut refiner = MaskRefiner::new(MODEL.width, MODEL.height, size, MaskParams::RECURRENT_MODEL);
     let green = MATRIX.to_yuv(Rgb::GREEN_SCREEN);
     let mut output = Nv12Frame::new(size);
@@ -160,7 +160,7 @@ fn cpu_reference(models: &Path, inputs: &[Nv12Frame; 2], count: usize) -> Result
 
 fn main() -> Result<()> {
     let models = repo_root().join("models");
-    let photo_path = std::env::var_os("BGCAM_PERSON_IMAGE").context("set BGCAM_PERSON_IMAGE")?;
+    let photo_path = std::env::var_os("CHROMAFREE_PERSON_IMAGE").context("set CHROMAFREE_PERSON_IMAGE")?;
     let size = FrameSize::new(WIDTH, HEIGHT)?;
     let photo = RgbImage::load(Path::new(&photo_path))?.to_nv12(size, MATRIX)?;
     let inputs = frames(&photo)?;
@@ -320,10 +320,10 @@ fn main() -> Result<()> {
         .chunks_exact(2)
         .map(|b| half::f16::from_le_bytes([b[0], b[1]]).to_f32())
         .collect();
-    let mut builder = bgcam_core::ModelInputBuilder::<f32>::new(
+    let mut builder = chromafree_core::ModelInputBuilder::<f32>::new(
         size,
         FrameSize::new(MODEL.width, MODEL.height)?,
-        bgcam_core::TensorLayout::Nchw,
+        chromafree_core::TensorLayout::Nchw,
         MATRIX,
     );
     let cpu_tensor_values = builder.build(&inputs[0])?;

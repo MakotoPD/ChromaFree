@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/bgcam-app", "crates/bgcam-capture", "crates/bgcam-core", "crates/bgcam-gpu", "crates/bgcam-ipc", "tools/bgcam-probe"]
+members = ["crates/chromafree-app", "crates/chromafree-capture", "crates/chromafree-core", "crates/chromafree-gpu", "crates/chromafree-ipc", "tools/chromafree-probe"]
 exclude = ["spikes"]
 
 [workspace.package]
@@ -11,10 +11,10 @@ license = "GPL-3.0-or-later"
 publish = false
 
 [workspace.dependencies]
-bgcam-core = { path = "crates/bgcam-core" }
-bgcam-ipc = { path = "crates/bgcam-ipc" }
-bgcam-capture = { path = "crates/bgcam-capture" }
-bgcam-gpu = { path = "crates/bgcam-gpu" }
+chromafree-core = { path = "crates/chromafree-core" }
+chromafree-ipc = { path = "crates/chromafree-ipc" }
+chromafree-capture = { path = "crates/chromafree-capture" }
+chromafree-gpu = { path = "crates/chromafree-gpu" }
 serde = { version = "1", features = ["derive"] }
 toml = "0.9"
 tracing = "0.1"

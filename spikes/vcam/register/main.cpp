@@ -29,8 +29,8 @@ int wmain()
         MFVirtualCameraType_SoftwareCameraSource,
         MFVirtualCameraLifetime_Session,
         MFVirtualCameraAccess_CurrentUser,
-        BgcamSpikeCameraName,
-        BgcamSpikeCameraClsidString,
+        ChromaFreeSpikeCameraName,
+        ChromaFreeSpikeCameraClsidString,
         nullptr,
         0,
         &camera);
@@ -47,7 +47,7 @@ int wmain()
         return 1;
     }
 
-    wprintf(L"Virtual camera \"%s\" is running. Press Enter to remove it.\n", BgcamSpikeCameraName);
+    wprintf(L"Virtual camera \"%s\" is running. Press Enter to remove it.\n", ChromaFreeSpikeCameraName);
     getwchar();
 
     hr = camera->Remove();

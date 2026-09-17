@@ -7,8 +7,8 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     throw 'Run this script from an elevated PowerShell (Run as administrator).'
 }
 
-$installDir = Join-Path $env:ProgramFiles 'bgcam-spike'
-$logDir = Join-Path $env:ProgramData 'bgcam-spike'
+$installDir = Join-Path $env:ProgramFiles 'chromafree-spike'
+$logDir = Join-Path $env:ProgramData 'chromafree-spike'
 $dll = Join-Path $installDir 'vcam-spike.dll'
 
 if (Test-Path $dll) {
