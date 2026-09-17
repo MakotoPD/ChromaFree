@@ -1,0 +1,42 @@
+name: Translation
+description: Add a new language or fix an existing translation
+title: "[Translation]: "
+labels: ["translation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The interface is written in English. Translations are gettext files in
+        `crates/chromafree-app/translations/<language>/LC_MESSAGES/chromafree-app.po`, and a few texts shown by the tray,
+        the status bar and dialogs live in `crates/chromafree-app/src/i18n.rs` and `gui.rs`.
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      placeholder: German (de)
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Request
+      options:
+        - Add a new language
+        - Fix a wrong or unclear translation
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: For fixes, quote the current text, the proposed text and where it appears.
+    validations:
+      required: true
+  - type: dropdown
+    id: contribution
+    attributes:
+      label: Can you provide the translation?
+      options:
+        - Yes, I will open a pull request
+        - Yes, I can send the texts in this issue
+        - "No"

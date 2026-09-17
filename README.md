@@ -129,6 +129,13 @@ physical camera → chromafree.exe (Rust: capture, D3D12 + DirectML pipeline, Sl
 | `models` | Model download and conversion scripts (model files are not stored in the repository) |
 | `installer` | Inno Setup script and packaging script |
 
+## Community and contributing
+
+- Join the [Discord server](https://discord.gg/pv52eNr6uc) for questions and help.
+- Report bugs and suggest features through the [issue forms](https://github.com/MakotoPD/ChromaFree/issues/new/choose).
+- Read the [contributing guide](.github/CONTRIBUTING.md) before opening a pull request, and report security issues
+  as described in the [security policy](.github/SECURITY.md).
+
 ## License
 
 ChromaFree is licensed under the [GNU General Public License v3.0 or later](LICENSE). The Robust Video Matting models

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discord server
+    url: https://discord.gg/pv52eNr6uc
+    about: Ask questions, get help with setup and talk with other users.
+  - name: Report a security vulnerability
+    url: https://github.com/MakotoPD/ChromaFree/security/advisories/new
+    about: Please report security issues privately instead of opening a public issue.

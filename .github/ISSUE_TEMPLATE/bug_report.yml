@@ -1,0 +1,102 @@
+name: Bug report
+description: Something does not work as expected
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. The more details you give, the faster it can be fixed.
+        For questions and quick help, join the [Discord server](https://discord.gg/pv52eNr6uc).
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you report
+      options:
+        - label: I searched the existing issues and this problem has not been reported yet.
+          required: true
+        - label: I am using the latest ChromaFree release.
+          required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ChromaFree and choose the blur effect
+        2. Select ChromaFree as the camera in Discord
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Virtual camera does not appear or shows no image
+        - Background effect or mask quality
+        - Performance (CPU, GPU, memory or latency)
+        - Settings window or tray
+        - Installer or uninstaller
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: consumer
+    attributes:
+      label: App using the camera
+      description: Where do you use the ChromaFree camera, with its version if you know it?
+      placeholder: Discord, OBS Studio 31, Meld Studio, Chrome, Microsoft Teams...
+  - type: input
+    id: version
+    attributes:
+      label: ChromaFree version
+      description: Shown on the About tab.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Run `winver` to check.
+      placeholder: Windows 11 24H2 (build 26100)
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: Graphics card and driver version
+      placeholder: AMD Radeon RX 7800 XT, Adrenalin 25.9.1
+    validations:
+      required: true
+  - type: input
+    id: camera
+    attributes:
+      label: Physical camera
+      placeholder: Logitech C920, 1920x1080 at 30 fps
+  - type: textarea
+    id: settings
+    attributes:
+      label: Settings
+      description: Effect, masking method, device and output resolution, or paste `%APPDATA%\ChromaFree\config.toml`.
+      render: toml
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Attach or paste the relevant part of `%LOCALAPPDATA%\ChromaFree\chromafree.log` (the About tab has a button that opens the folder).
+        For virtual camera problems also include `%ProgramData%\ChromaFree\vcam-source.log`.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or recordings
+      description: Optional. Make sure they do not show anything private.
