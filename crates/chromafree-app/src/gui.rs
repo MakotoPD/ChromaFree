@@ -20,7 +20,8 @@ use crate::config::{
     Config, DeviceConfig, EffectMode, FormatConfig, MethodConfig, format_color, parse_color, parse_quality,
 };
 use crate::desktop::{
-    APP_AUTHOR, APP_VERSION, PROJECT_URL, log_directory, open_in_shell, pick_background_image, watch_directory,
+    APP_AUTHOR, APP_VERSION, DISCORD_URL, PROJECT_URL, log_directory, open_in_shell, pick_background_image,
+    watch_directory,
 };
 use crate::engine::{
     Engine, EngineCommand, EngineObserver, EngineOptions, EngineState, EngineStatus, VirtualCameraState,
@@ -404,6 +405,7 @@ impl App {
         window.set_app_version(APP_VERSION.into());
         window.set_app_author(APP_AUTHOR.into());
         window.on_open_project(|| open_in_shell(PROJECT_URL));
+        window.on_open_discord(|| open_in_shell(DISCORD_URL));
         window.on_open_logs(|| {
             if let Some(directory) = log_directory() {
                 open_in_shell(&directory.display().to_string());

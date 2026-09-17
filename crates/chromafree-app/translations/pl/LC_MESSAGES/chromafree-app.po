@@ -200,3 +200,6 @@ msgstr "Wersja {}"
 
 msgid "Author: {}"
 msgstr "Autor: {}"
+
+msgid "Join the Discord server"
+msgstr "Dołącz do serwera Discord"

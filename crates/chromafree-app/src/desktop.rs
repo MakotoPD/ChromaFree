@@ -69,6 +69,7 @@ pub fn pick_background_image() -> Result<Option<PathBuf>> {
 }
 
 pub const PROJECT_URL: &str = env!("CARGO_PKG_REPOSITORY");
+pub const DISCORD_URL: &str = "https://discord.gg/pv52eNr6uc";
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const APP_AUTHOR: &str = env!("CARGO_PKG_AUTHORS");
 
