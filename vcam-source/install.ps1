@@ -14,6 +14,7 @@ if (-not (Test-Path $built)) { throw "Missing $built - build vcam-source first."
 
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 Copy-Item $built $installDir -Force
+Copy-Item (Join-Path $PSScriptRoot 'assets\offline.png') $installDir -Force
 
 $process = Start-Process -FilePath regsvr32.exe -ArgumentList '/s', "`"$dll`"" -Wait -PassThru
 if ($process.ExitCode -ne 0) { throw "regsvr32 failed with exit code $($process.ExitCode)" }

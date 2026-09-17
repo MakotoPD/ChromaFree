@@ -63,6 +63,7 @@ $files = @{
     'LICENSE'             = Join-Path $root 'LICENSE'
     'THIRD_PARTY.md'      = Join-Path $root 'THIRD_PARTY.md'
     'VCAM_THIRD_PARTY.md' = Join-Path $root 'vcam-source\THIRD_PARTY.md'
+    'offline.png'         = Join-Path $root 'vcam-source\assets\offline.png'
 }
 foreach ($entry in $files.GetEnumerator()) {
     if (-not (Test-Path $entry.Value)) { throw "Missing $($entry.Value)" }

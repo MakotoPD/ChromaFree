@@ -52,6 +52,7 @@ Source: "{#PackageDir}\vcam-source.dll"; DestDir: "{app}"; Flags: ignoreversion 
 Source: "{#PackageDir}\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PackageDir}\THIRD_PARTY.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PackageDir}\VCAM_THIRD_PARTY.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#PackageDir}\offline.png"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PackageDir}\models\*"; DestDir: "{app}\models"; Flags: ignoreversion
 
 [InstallDelete]

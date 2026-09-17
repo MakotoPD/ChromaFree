@@ -10,3 +10,6 @@ publish.workspace = true
 anyhow.workspace = true
 chromafree-ipc.workspace = true
 windows = { workspace = true, features = ["Win32_Media_MediaFoundation", "Win32_System_Com"] }
+
+[dev-dependencies]
+image.workspace = true

@@ -25,13 +25,14 @@ add_library(vcam-source SHARED
     src/frame_channel.cpp
     src/media_source.cpp
     src/media_stream.cpp
+    src/offline_frame.cpp
     src/vcam-source.def
 )
 target_precompile_headers(vcam-source PRIVATE src/pch.h)
 target_include_directories(vcam-source SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../crates/chromafree-ipc/include)
 target_compile_options(vcam-source PRIVATE ${CHROMAFREE_COMPILE_OPTIONS})
 target_compile_definitions(vcam-source PRIVATE ${CHROMAFREE_DEFINITIONS})
-target_link_libraries(vcam-source PRIVATE WIL::WIL mfplat mfuuid mfsensorgroup wtsapi32 propsys windowsapp)
+target_link_libraries(vcam-source PRIVATE WIL::WIL mfplat mfuuid mfsensorgroup wtsapi32 propsys windowscodecs windowsapp)
 
 add_executable(vcam-source-smoke smoke/main.cpp)
 target_compile_options(vcam-source-smoke PRIVATE ${CHROMAFREE_COMPILE_OPTIONS})

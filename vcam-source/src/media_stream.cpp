@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "media_stream.h"
+#include "offline_frame.h"
 
 namespace
 {
@@ -154,6 +155,7 @@ void MediaStream::Shutdown()
 
 void MediaStream::Run(const StreamFormat& format)
 {
+    const auto offline = LoadOfflineFrame(format.format, format.width, format.height);
     const auto frequency = QpcFrequency();
     auto lastOpenAttempt = QpcNow();
     if (_channel->Open())
@@ -198,7 +200,7 @@ void MediaStream::Run(const StreamFormat& format)
             continue;
         }
         const bool producerAlive = _channel->ProducerAlive();
-        if (!Deliver(format, producerAlive))
+        if (!Deliver(format, producerAlive, offline))
         {
             deadline = now + format.periodQpc;
         }
@@ -213,7 +215,7 @@ void MediaStream::Run(const StreamFormat& format)
     }
 }
 
-bool MediaStream::Deliver(const StreamFormat& format, bool producerAlive)
+bool MediaStream::Deliver(const StreamFormat& format, bool producerAlive, const std::vector<uint8_t>& offline)
 {
     winrt::slim_lock_guard lock(_lock);
     if (_pendingCount == 0 || !_allocator || !_queue || _state != MF_STREAM_STATE_RUNNING)
@@ -245,7 +247,14 @@ bool MediaStream::Deliver(const StreamFormat& format, bool producerAlive)
     const auto frame = producerAlive ? _channel->CopyLatest(target) : std::nullopt;
     if (!frame)
     {
-        FillFallback(target);
+        if (offline.empty())
+        {
+            FillFallback(target);
+        }
+        else
+        {
+            CopyFrame(target, offline.data());
+        }
     }
     LOG_IF_FAILED(buffer2d->Unlock2D());
 

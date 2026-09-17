@@ -15,14 +15,17 @@
 #include <ksproxy.h>
 #include <ksmedia.h>
 #include <wtsapi32.h>
+#include <wincodec.h>
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <format>
 #include <optional>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include <wil/com.h>
 #include <wil/resource.h>
