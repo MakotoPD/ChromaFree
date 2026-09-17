@@ -5,7 +5,7 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
-use chromafree_capture::{CaptureFormat, MediaFoundation};
+use chromafree_capture::{CaptureFormat, MediaFoundation, chromafree_camera_present};
 use chromafree_core::{ColorMatrix, OutputFormat, PipelineOutput, RgbImage};
 use chromafree_ipc::{ObjectNames, OutputMode, PixelFormat, ProducerChannel, ProducerWaker};
 
@@ -426,6 +426,12 @@ impl Worker {
             return;
         }
         self.virtual_camera = None;
+        if chromafree_camera_present().unwrap_or(false) {
+            tracing::info!("using the installed system virtual camera");
+            self.status.virtual_camera = VirtualCameraState::Registered;
+            self.notify();
+            return;
+        }
         match VirtualCamera::create() {
             Ok(camera) => {
                 self.virtual_camera = Some(camera);

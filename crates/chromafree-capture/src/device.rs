@@ -138,6 +138,19 @@ fn string_attribute(activate: &IMFActivate, key: &GUID) -> Result<String, Captur
 }
 
 pub fn list_cameras() -> Result<Vec<CameraDevice>, CaptureError> {
+    Ok(enumerate_devices()?
+        .into_iter()
+        .filter(|device| !is_virtual_chromafree_camera(&device.name, &device.symbolic_link))
+        .collect())
+}
+
+pub fn chromafree_camera_present() -> Result<bool, CaptureError> {
+    Ok(enumerate_devices()?
+        .iter()
+        .any(|device| is_virtual_chromafree_camera(&device.name, &device.symbolic_link)))
+}
+
+fn enumerate_devices() -> Result<Vec<CameraDevice>, CaptureError> {
     let attributes = capture_attributes(None)?;
     let mut activates = std::ptr::null_mut();
     let mut count = 0;
@@ -155,9 +168,7 @@ pub fn list_cameras() -> Result<Vec<CameraDevice>, CaptureError> {
     for activate in taken.into_iter().flatten() {
         let name = string_attribute(&activate, &MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME)?;
         let symbolic_link = string_attribute(&activate, &MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK)?;
-        if !is_virtual_chromafree_camera(&name, &symbolic_link) {
-            cameras.push(CameraDevice { name, symbolic_link });
-        }
+        cameras.push(CameraDevice { name, symbolic_link });
     }
     Ok(cameras)
 }

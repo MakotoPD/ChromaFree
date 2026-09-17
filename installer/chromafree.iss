@@ -38,6 +38,8 @@ polish.AutoStart=Uruchamiaj ChromaFree w tle po zalogowaniu
 english.AutoStart=Start ChromaFree in the background when I sign in
 polish.LaunchApp=Uruchom ChromaFree
 english.LaunchApp=Launch ChromaFree
+polish.InstallingCamera=Dodawanie kamery ChromaFree do systemu...
+english.InstallingCamera=Adding the ChromaFree camera to the system...
 
 [Tasks]
 Name: "autostart"; Description: "{cm:AutoStart}"
@@ -63,10 +65,12 @@ Name: "{autodesktop}\ChromaFree"; Filename: "{app}\chromafree.exe"; Tasks: deskt
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "ChromaFree"; ValueData: """{app}\chromafree.exe"" --minimized"; Tasks: autostart; Flags: uninsdeletevalue
 
 [Run]
+Filename: "{app}\chromafree.exe"; Parameters: "--install-camera"; StatusMsg: "{cm:InstallingCamera}"; Flags: runhidden waituntilterminated
 Filename: "{app}\chromafree.exe"; Description: "{cm:LaunchApp}"; Flags: nowait postinstall skipifsilent runasoriginaluser
 
 [UninstallRun]
-Filename: "{sys}\taskkill.exe"; Parameters: "/IM chromafree.exe /F"; Flags: runhidden; RunOnceId: "StopChromaFree"
+Filename: "{sys}\taskkill.exe"; Parameters: "/IM chromafree.exe /F"; Flags: runhidden waituntilterminated; RunOnceId: "StopChromaFree"
+Filename: "{app}\chromafree.exe"; Parameters: "--uninstall-camera"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveCamera"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\models"

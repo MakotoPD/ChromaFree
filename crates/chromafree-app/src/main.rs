@@ -12,6 +12,8 @@ use chromafree_app::config::Config;
 use chromafree_app::desktop::SingleInstance;
 use chromafree_app::engine::{Engine, EngineObserver, EngineOptions, EngineStatus};
 use chromafree_app::gui;
+use chromafree_app::virtual_camera::{install_system_camera, uninstall_system_camera};
+use chromafree_capture::MediaFoundation;
 use chromafree_core::{ColorMatrix, PipelineOutput};
 use chromafree_ipc::ObjectNames;
 use tracing_subscriber::fmt::writer::MakeWriterExt;
@@ -75,6 +77,13 @@ fn main() {
     if log_path.is_none() {
         tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
     }
+    if let Some(action) = std::env::args().find_map(|arg| CameraAction::parse(&arg)) {
+        if let Err(error) = action.run() {
+            tracing::error!(error = format!("{error:#}"), "virtual camera setup failed");
+            std::process::exit(1);
+        }
+        return;
+    }
     if let Err(error) = run() {
         tracing::error!(error = format!("{error:#}"), "ChromaFree stopped");
         let log = log_path
@@ -82,6 +91,29 @@ fn main() {
             .unwrap_or_default();
         let text = HSTRING::from(format!("ChromaFree nie może działać:\n{error:#}{log}"));
         unsafe { MessageBoxW(None, &text, &HSTRING::from("ChromaFree"), MB_OK | MB_ICONERROR) };
+    }
+}
+
+enum CameraAction {
+    Install,
+    Uninstall,
+}
+
+impl CameraAction {
+    fn parse(argument: &str) -> Option<Self> {
+        match argument {
+            "--install-camera" => Some(Self::Install),
+            "--uninstall-camera" => Some(Self::Uninstall),
+            _ => None,
+        }
+    }
+
+    fn run(self) -> Result<()> {
+        let _media_foundation = MediaFoundation::startup()?;
+        match self {
+            Self::Install => install_system_camera(),
+            Self::Uninstall => uninstall_system_camera(),
+        }
     }
 }
 
