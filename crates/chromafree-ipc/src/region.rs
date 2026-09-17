@@ -57,6 +57,7 @@ pub struct FrameInfo {
 pub struct ConsumerState {
     pub active: bool,
     pub format: Option<PixelFormat>,
+    pub size: Option<(u32, u32)>,
     pub count: u32,
 }
 
@@ -319,8 +320,13 @@ impl SharedRegion {
         heartbeat != 0 && now_qpc.saturating_sub(heartbeat) <= timeout
     }
 
-    pub fn consumer_started(&self, format: PixelFormat, qpc: i64) {
+    pub fn consumer_started(&self, format: PixelFormat, size: Option<(u32, u32)>, qpc: i64) {
         let header = self.raw();
+        let (width, height) = size.unwrap_or((0, 0));
+        self.atomic_u32(unsafe { addr_of_mut!((*header).consumer_width) })
+            .store(width, Ordering::Release);
+        self.atomic_u32(unsafe { addr_of_mut!((*header).consumer_height) })
+            .store(height, Ordering::Release);
         self.atomic_u32(unsafe { addr_of_mut!((*header).consumer_format) })
             .store(format.code(), Ordering::Release);
         self.atomic_u32(unsafe { addr_of_mut!((*header).consumer_count) })
@@ -362,10 +368,17 @@ impl SharedRegion {
             self.atomic_u32(unsafe { addr_of_mut!((*header).consumer_format) })
                 .load(Ordering::Acquire),
         );
+        let size = (
+            self.atomic_u32(unsafe { addr_of_mut!((*header).consumer_width) })
+                .load(Ordering::Acquire),
+            self.atomic_u32(unsafe { addr_of_mut!((*header).consumer_height) })
+                .load(Ordering::Acquire),
+        );
         let active = flags & CHROMAFREE_CONSUMER_ACTIVE != 0 && count > 0 && self.fresh(heartbeat, now_qpc);
         ConsumerState {
             active,
             format: format.filter(|_| active),
+            size: Some(size).filter(|(width, height)| active && validate_size(*width, *height).is_ok()),
             count,
         }
     }
@@ -441,11 +454,15 @@ mod tests {
     fn consumer_and_producer_liveness_follow_flags_and_heartbeats() {
         let (_memory, region) = region(64);
         assert!(!region.consumer_state(0).active);
-        region.consumer_started(PixelFormat::Bgra, 5_000_000);
-        region.consumer_started(PixelFormat::Nv12, 5_000_000);
+        region.consumer_started(PixelFormat::Nv12, None, 5_000_000);
+        assert_eq!(region.consumer_state(5_500_000).size, None);
+        region.consumer_started(PixelFormat::Bgra, Some((1280, 720)), 5_000_000);
         let state = region.consumer_state(5_500_000);
         assert!(state.active);
-        assert_eq!((state.count, state.format), (2, Some(PixelFormat::Nv12)));
+        assert_eq!(
+            (state.count, state.format, state.size),
+            (2, Some(PixelFormat::Bgra), Some((1280, 720)))
+        );
         assert!(!region.consumer_state(8_000_000).active);
         region.consumer_stopped();
         assert!(region.consumer_state(5_500_000).active);

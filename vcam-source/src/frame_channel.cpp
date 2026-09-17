@@ -178,13 +178,15 @@ void FrameChannel::SignalConsumerChanged() const
     LOG_IF_WIN32_BOOL_FALSE(SetEvent(_consumerChanged.get()));
 }
 
-void FrameChannel::ConsumerStarted(uint32_t format)
+void FrameChannel::ConsumerStarted(uint32_t format, uint32_t width, uint32_t height)
 {
     if (!IsOpen() || _consuming)
     {
         return;
     }
     auto* header = Header();
+    InterlockedExchange(AsLong(header->consumer_width), static_cast<LONG>(width));
+    InterlockedExchange(AsLong(header->consumer_height), static_cast<LONG>(height));
     InterlockedExchange(AsLong(header->consumer_format), static_cast<LONG>(format));
     InterlockedIncrement(AsLong(header->consumer_count));
     InterlockedOr(AsLong(header->consumer_flags), CHROMAFREE_CONSUMER_ACTIVE);

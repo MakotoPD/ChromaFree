@@ -94,13 +94,15 @@ fn header_layout_is_frozen() {
         (offset_of!(ChromaFreeFrameHeader, producer_heartbeat_qpc), 88),
         (offset_of!(ChromaFreeFrameHeader, consumer_heartbeat_qpc), 96),
         (offset_of!(ChromaFreeFrameHeader, qpc_frequency), 104),
-        (offset_of!(ChromaFreeFrameHeader, reserved), 112),
+        (offset_of!(ChromaFreeFrameHeader, consumer_width), 112),
+        (offset_of!(ChromaFreeFrameHeader, consumer_height), 116),
+        (offset_of!(ChromaFreeFrameHeader, reserved), 120),
     ];
     for (index, (actual, expected)) in offsets.iter().enumerate() {
         assert_eq!(actual, expected, "field #{index}");
     }
     assert_eq!(
-        CHROMAFREE_PROTOCOL_VERSION, 1,
+        CHROMAFREE_PROTOCOL_VERSION, 2,
         "bump the protocol version together with any layout change"
     );
 }

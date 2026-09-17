@@ -285,8 +285,12 @@ impl ReaderChannel {
     }
 
     pub fn start(&mut self, format: PixelFormat) -> Result<(), IpcError> {
+        self.start_with_size(format, None)
+    }
+
+    pub fn start_with_size(&mut self, format: PixelFormat, size: Option<(u32, u32)>) -> Result<(), IpcError> {
         if !self.consuming {
-            self.region.consumer_started(format, qpc_now());
+            self.region.consumer_started(format, size, qpc_now());
             self.consuming = true;
         }
         unsafe { SetEvent(self.consumer_changed.0) }?;

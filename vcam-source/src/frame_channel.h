@@ -37,7 +37,7 @@ public:
     std::optional<OutputMode> Mode() const;
     HANDLE FrameReadyEvent() const;
 
-    void ConsumerStarted(uint32_t format);
+    void ConsumerStarted(uint32_t format, uint32_t width, uint32_t height);
     void ConsumerStopped();
     void Heartbeat();
     bool ProducerAlive() const;

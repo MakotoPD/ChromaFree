@@ -1,5 +1,5 @@
 pub const CHROMAFREE_MAGIC: u32 = 0x4D41_4342;
-pub const CHROMAFREE_PROTOCOL_VERSION: u32 = 1;
+pub const CHROMAFREE_PROTOCOL_VERSION: u32 = 2;
 pub const CHROMAFREE_HEADER_SIZE: u32 = 128;
 pub const CHROMAFREE_MAX_WIDTH: u32 = 3840;
 pub const CHROMAFREE_MAX_HEIGHT: u32 = 2160;
@@ -46,5 +46,7 @@ pub struct ChromaFreeFrameHeader {
     pub producer_heartbeat_qpc: i64,
     pub consumer_heartbeat_qpc: i64,
     pub qpc_frequency: i64,
-    pub reserved: [u32; 4],
+    pub consumer_width: u32,
+    pub consumer_height: u32,
+    pub reserved: [u32; 2],
 }

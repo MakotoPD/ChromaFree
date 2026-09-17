@@ -11,7 +11,7 @@
 
 #define CHROMAFREE_MAGIC 1296122690
 
-#define CHROMAFREE_PROTOCOL_VERSION 1
+#define CHROMAFREE_PROTOCOL_VERSION 2
 
 #define CHROMAFREE_HEADER_SIZE 128
 
@@ -60,5 +60,7 @@ typedef struct {
   int64_t producer_heartbeat_qpc;
   int64_t consumer_heartbeat_qpc;
   int64_t qpc_frequency;
-  uint32_t reserved[4];
+  uint32_t consumer_width;
+  uint32_t consumer_height;
+  uint32_t reserved[2];
 } ChromaFreeFrameHeader;

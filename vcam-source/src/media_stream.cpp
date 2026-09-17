@@ -160,7 +160,7 @@ void MediaStream::Run(const StreamFormat& format)
     auto lastOpenAttempt = QpcNow();
     if (_channel->Open())
     {
-        _channel->ConsumerStarted(format.format);
+        _channel->ConsumerStarted(format.format, format.width, format.height);
     }
 
     auto deadline = QpcNow();
@@ -172,7 +172,7 @@ void MediaStream::Run(const StreamFormat& format)
             lastOpenAttempt = now;
             if (_channel->Open())
             {
-                _channel->ConsumerStarted(format.format);
+                _channel->ConsumerStarted(format.format, format.width, format.height);
             }
         }
 

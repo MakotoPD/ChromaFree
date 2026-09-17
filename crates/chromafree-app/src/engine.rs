@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use chromafree_capture::{CaptureFormat, MediaFoundation, chromafree_camera_present};
-use chromafree_core::{ColorMatrix, OutputFormat, PipelineOutput, RgbImage};
+use chromafree_core::{ColorMatrix, FrameSize, OutputFormat, PipelineOutput, PipelineSettings, RgbImage};
 use chromafree_ipc::{ObjectNames, OutputMode, PixelFormat, ProducerChannel, ProducerWaker};
 
 use crate::camera::{CameraOpenError, CameraProvider, OpenedCamera};
@@ -173,6 +173,7 @@ struct Worker {
     background: Option<(PathBuf, Arc<RgbImage>)>,
     preview_enabled: bool,
     unused_since: Option<Instant>,
+    consumer_size: Option<FrameSize>,
     stats: Stats,
 }
 
@@ -198,6 +199,7 @@ impl Worker {
             background: None,
             preview_enabled: false,
             unused_since: None,
+            consumer_size: None,
             stats: Stats::new(),
         }
     }
@@ -224,6 +226,7 @@ impl Worker {
                 self.status.consumer_format = consumer.format;
                 self.notify();
             }
+            self.follow_consumer_size(consumer.size);
             if !consumer.active && !self.preview_enabled {
                 self.wait_while_unused();
                 continue;
@@ -309,7 +312,7 @@ impl Worker {
                 return false;
             }
         };
-        let settings = match self.config.pipeline_settings(self.background_image()) {
+        let settings = match self.pipeline_settings() {
             Ok(settings) => settings,
             Err(error) => {
                 self.status.state = EngineState::Error(format!("{error:#}"));
@@ -395,7 +398,35 @@ impl Worker {
             self.notify();
             return;
         }
-        let settings = match self.config.pipeline_settings(self.background_image()) {
+        self.refresh_pipeline();
+    }
+
+    fn pipeline_settings(&self) -> Result<PipelineSettings> {
+        let mut settings = self.config.pipeline_settings(self.background_image())?;
+        if let Some(size) = self.consumer_size {
+            settings.output = size;
+        }
+        Ok(settings)
+    }
+
+    fn follow_consumer_size(&mut self, size: Option<(u32, u32)>) {
+        let size = size.and_then(|(width, height)| FrameSize::new(width, height).ok());
+        if size == self.consumer_size {
+            return;
+        }
+        self.consumer_size = size;
+        if let Some(size) = size {
+            tracing::info!(
+                width = size.width(),
+                height = size.height(),
+                "rendering at the consumer's resolution"
+            );
+        }
+        self.refresh_pipeline();
+    }
+
+    fn refresh_pipeline(&mut self) {
+        let settings = match self.pipeline_settings() {
             Ok(settings) => settings,
             Err(error) => {
                 self.status.warning = Some(format!("{error:#}"));

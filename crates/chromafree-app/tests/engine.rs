@@ -185,6 +185,13 @@ fn engine_follows_consumers_formats_preview_and_settings() {
     }
 
     reader.stop().unwrap();
+    reader.start_with_size(PixelFormat::Nv12, Some((320, 180))).unwrap();
+    read_frame(&reader, &mut buffer, PixelFormat::Nv12, (320, 180));
+    reader.stop().unwrap();
+    reader.start(PixelFormat::Bgra).unwrap();
+    read_frame(&reader, &mut buffer, PixelFormat::Bgra, (640, 360));
+
+    reader.stop().unwrap();
     wait_until("producer to go inactive", || !reader.producer_alive());
     wait_until("camera to close after the delay", || {
         counters.live.load(Ordering::SeqCst) == 0
