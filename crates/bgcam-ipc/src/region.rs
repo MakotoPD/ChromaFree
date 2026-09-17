@@ -188,6 +188,18 @@ impl SharedRegion {
         qpc: i64,
         pixels: &[u8],
     ) -> Result<(), IpcError> {
+        self.write_frame_parts(format, width, height, frame_number, qpc, &[pixels])
+    }
+
+    pub fn write_frame_parts(
+        &self,
+        format: PixelFormat,
+        width: u32,
+        height: u32,
+        frame_number: u64,
+        qpc: i64,
+        parts: &[&[u8]],
+    ) -> Result<(), IpcError> {
         validate_size(width, height)?;
         let size = format.frame_size(width, height);
         if size > self.capacity {
@@ -196,10 +208,11 @@ impl SharedRegion {
                 capacity: self.capacity,
             });
         }
-        if pixels.len() < size {
+        let provided: usize = parts.iter().map(|part| part.len()).sum();
+        if provided < size {
             return Err(IpcError::BufferTooSmall {
                 needed: size,
-                actual: pixels.len(),
+                actual: provided,
             });
         }
         let header = self.raw();
@@ -207,7 +220,12 @@ impl SharedRegion {
         let writing = sequence.load(Ordering::Acquire) | 1;
         sequence.store(writing, Ordering::Release);
         unsafe {
-            std::ptr::copy_nonoverlapping(pixels.as_ptr(), self.data.as_ptr(), size);
+            let mut offset = 0;
+            for part in parts {
+                let count = part.len().min(size - offset);
+                std::ptr::copy_nonoverlapping(part.as_ptr(), self.data.as_ptr().add(offset), count);
+                offset += count;
+            }
             addr_of_mut!((*header).frame_width).write_volatile(width);
             addr_of_mut!((*header).frame_height).write_volatile(height);
             addr_of_mut!((*header).frame_format).write_volatile(format.code());

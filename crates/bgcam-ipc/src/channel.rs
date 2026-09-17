@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use windows::Win32::Foundation::{
@@ -110,12 +111,21 @@ fn wait(handle: &OwnedHandle, timeout: Duration) -> bool {
     result == WAIT_OBJECT_0
 }
 
+#[derive(Clone)]
+pub struct ProducerWaker(Arc<OwnedHandle>);
+
+impl ProducerWaker {
+    pub fn wake(&self) {
+        let _ = unsafe { SetEvent(self.0.0) };
+    }
+}
+
 pub struct ProducerChannel {
     _section: OwnedHandle,
     _view: MappedView,
     region: SharedRegion,
     frame_ready: OwnedHandle,
-    consumer_changed: OwnedHandle,
+    consumer_changed: Arc<OwnedHandle>,
     frame_number: u64,
 }
 
@@ -174,7 +184,7 @@ impl ProducerChannel {
             _view: view,
             region,
             frame_ready,
-            consumer_changed,
+            consumer_changed: Arc::new(consumer_changed),
             frame_number: 0,
         })
     }
@@ -184,10 +194,20 @@ impl ProducerChannel {
     }
 
     pub fn publish(&mut self, format: PixelFormat, width: u32, height: u32, pixels: &[u8]) -> Result<(), IpcError> {
+        self.publish_parts(format, width, height, &[pixels])
+    }
+
+    pub fn publish_parts(
+        &mut self,
+        format: PixelFormat,
+        width: u32,
+        height: u32,
+        parts: &[&[u8]],
+    ) -> Result<(), IpcError> {
         self.frame_number += 1;
         let qpc = qpc_now();
         self.region
-            .write_frame(format, width, height, self.frame_number, qpc, pixels)?;
+            .write_frame_parts(format, width, height, self.frame_number, qpc, parts)?;
         self.region.set_producer_active(true, qpc);
         unsafe { SetEvent(self.frame_ready.0) }?;
         Ok(())
@@ -199,6 +219,10 @@ impl ProducerChannel {
 
     pub fn consumer(&self) -> ConsumerState {
         self.region.consumer_state(qpc_now())
+    }
+
+    pub fn waker(&self) -> ProducerWaker {
+        ProducerWaker(Arc::clone(&self.consumer_changed))
     }
 
     pub fn wait_for_consumer_change(&self, timeout: Duration) -> bool {

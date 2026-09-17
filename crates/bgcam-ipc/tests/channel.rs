@@ -53,3 +53,26 @@ fn producer_and_reader_exchange_frames_and_consumer_state() {
     drop(producer);
     assert!(!second.producer_alive());
 }
+
+#[test]
+fn waker_interrupts_consumer_wait_and_parts_are_concatenated() {
+    let names = unique_names("parts");
+    let mut producer = ProducerChannel::create(&names).unwrap();
+    let waker = producer.waker();
+    let waiter = std::thread::spawn(move || {
+        waker.wake();
+    });
+    assert!(producer.wait_for_consumer_change(Duration::from_secs(1)));
+    waiter.join().unwrap();
+
+    let luma = [7u8; 16];
+    let chroma = [9u8; 8];
+    producer
+        .publish_parts(PixelFormat::Nv12, 4, 4, &[&luma, &chroma])
+        .unwrap();
+    let reader = ReaderChannel::open(&names).unwrap();
+    let mut out = [0u8; 24];
+    reader.read(&mut out).unwrap().unwrap();
+    assert_eq!(&out[..16], &luma);
+    assert_eq!(&out[16..], &chroma);
+}

@@ -1,10 +1,68 @@
-use anyhow::Result;
+use std::io::BufRead;
+use std::path::PathBuf;
+use std::time::Duration;
+
+use anyhow::{Context, Result};
+use bgcam_app::camera::MediaFoundationCameras;
 use bgcam_app::config::Config;
+use bgcam_app::engine::{Engine, EngineObserver, EngineOptions, EngineStatus};
+use bgcam_core::BgraFrame;
+use bgcam_ipc::ObjectNames;
+
+const CAMERA_CLOSE_DELAY: Duration = Duration::from_secs(5);
+
+struct LogObserver;
+
+impl EngineObserver for LogObserver {
+    fn status_changed(&self, status: &EngineStatus) {
+        tracing::info!(
+            state = ?status.state,
+            virtual_camera = ?status.virtual_camera,
+            consumer = ?status.consumer_format,
+            backend = status.backend.as_deref().unwrap_or("-"),
+            model = status.model.as_deref().unwrap_or("-"),
+            fps = status.fps,
+            processing_ms = status.processing_ms,
+            warning = status.warning.as_deref().unwrap_or("-"),
+            "status"
+        );
+    }
+
+    fn preview(&self, _frame: &BgraFrame) {}
+}
+
+fn models_dir() -> Result<PathBuf> {
+    if let Some(dir) = std::env::var_os("BGCAM_MODELS_DIR") {
+        return Ok(PathBuf::from(dir));
+    }
+    let exe = std::env::current_exe().context("locating the executable")?;
+    exe.ancestors()
+        .skip(1)
+        .map(|dir| dir.join("models"))
+        .find(|dir| dir.is_dir())
+        .context("models directory not found next to the executable, set BGCAM_MODELS_DIR")
+}
 
 fn main() -> Result<()> {
     tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
-    let path = Config::default_path()?;
-    let config = Config::load(&path)?;
-    tracing::info!(path = %path.display(), ?config, "configuration loaded");
+    let config_path = Config::default_path()?;
+    let config = Config::load(&config_path)?;
+    let models_dir = models_dir()?;
+    tracing::info!(config = %config_path.display(), models = %models_dir.display(), "starting");
+
+    let engine = Engine::start(
+        EngineOptions {
+            names: ObjectNames::local(),
+            models_dir,
+            register_virtual_camera: true,
+            camera_close_delay: CAMERA_CLOSE_DELAY,
+        },
+        config,
+        MediaFoundationCameras,
+        LogObserver,
+    )?;
+    tracing::info!("running headless, press Enter to quit");
+    std::io::stdin().lock().read_line(&mut String::new())?;
+    drop(engine);
     Ok(())
 }
