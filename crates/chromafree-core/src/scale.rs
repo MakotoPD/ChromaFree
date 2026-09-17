@@ -99,7 +99,7 @@ fn taps(source_len: u32, target_len: u32, rect_start: f64, rect_len: f64) -> Vec
 }
 
 fn interpolate_row<const C: usize>(taps: &[Tap], source_row: &[u8], output: &mut [u16]) {
-    for (tap, pixel) in taps.iter().zip(output.chunks_exact_mut(C)) {
+    for (tap, pixel) in taps.iter().zip(output.as_chunks_mut::<C>().0.iter_mut()) {
         let left = &source_row[tap.first as usize * C..tap.first as usize * C + C];
         let right = &source_row[tap.second as usize * C..tap.second as usize * C + C];
         let fx = tap.fraction as u16;

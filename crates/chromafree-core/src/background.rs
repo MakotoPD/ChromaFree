@@ -66,10 +66,10 @@ impl RgbImage {
         let mut frame = Nv12Frame::new(target);
         let width = target.width() as usize;
         let (luma, chroma) = frame.planes_mut();
-        for (out, rgb) in luma.iter_mut().zip(scaled.chunks_exact(3)) {
+        for (out, rgb) in luma.iter_mut().zip(scaled.as_chunks::<3>().0.iter()) {
             *out = matrix.to_yuv(Rgb::new(rgb[0], rgb[1], rgb[2])).y;
         }
-        for (i, out) in chroma.chunks_exact_mut(2).enumerate() {
+        for (i, out) in chroma.as_chunks_mut::<2>().0.iter_mut().enumerate() {
             let (cx, cy) = (i % target.chroma_width() as usize, i / target.chroma_width() as usize);
             let (mut u, mut v) = (0u32, 0u32);
             for (dx, dy) in [(0, 0), (1, 0), (0, 1), (1, 1)] {

@@ -41,8 +41,10 @@ pub fn blend_nv12(
                 *out = blend(fg, color.y, a);
             }
             for ((out, fg), &a) in target_chroma
-                .chunks_exact_mut(2)
-                .zip(foreground.chroma().chunks_exact(2))
+                .as_chunks_mut::<2>()
+                .0
+                .iter_mut()
+                .zip(foreground.chroma().as_chunks::<2>().0.iter())
                 .zip(chroma_mask)
             {
                 out[0] = blend(fg[0], color.u, a);
@@ -60,9 +62,11 @@ pub fn blend_nv12(
                 *out = blend(fg, bg, a);
             }
             for (((out, fg), bg), &a) in target_chroma
-                .chunks_exact_mut(2)
-                .zip(foreground.chroma().chunks_exact(2))
-                .zip(frame.chroma().chunks_exact(2))
+                .as_chunks_mut::<2>()
+                .0
+                .iter_mut()
+                .zip(foreground.chroma().as_chunks::<2>().0.iter())
+                .zip(frame.chroma().as_chunks::<2>().0.iter())
                 .zip(chroma_mask)
             {
                 out[0] = blend(fg[0], bg[0], a);
@@ -95,7 +99,7 @@ pub fn nv12_to_bgra(
     {
         let chroma_row = &frame.chroma()[(y / 2) * chroma_stride..(y / 2 + 1) * chroma_stride];
         let alpha_row = alpha.map(|mask| &mask[y * width..(y + 1) * width]);
-        for (x, (pixel, &luma)) in row.chunks_exact_mut(4).zip(luma_row).enumerate() {
+        for (x, (pixel, &luma)) in row.as_chunks_mut::<4>().0.iter_mut().zip(luma_row).enumerate() {
             let c = 298 * (i32::from(luma) - 16);
             let d = i32::from(chroma_row[x & !1]) - 128;
             let e = i32::from(chroma_row[(x & !1) + 1]) - 128;
@@ -173,10 +177,10 @@ mod tests {
         nv12_to_bgra(&frame, Some(&alpha), matrix, &mut target).unwrap();
         let first = &target.data()[..4];
         assert!(first[2] > 240 && first[0] < 20 && first[1] < 20);
-        let alphas: Vec<u8> = target.data().chunks_exact(4).map(|p| p[3]).collect();
+        let alphas: Vec<u8> = target.data().as_chunks::<4>().0.iter().map(|p| p[3]).collect();
         assert_eq!(alphas, alpha);
         nv12_to_bgra(&frame, None, matrix, &mut target).unwrap();
-        assert!(target.data().chunks_exact(4).all(|p| p[3] == 255));
+        assert!(target.data().as_chunks::<4>().0.iter().all(|p| p[3] == 255));
     }
 
     #[test]

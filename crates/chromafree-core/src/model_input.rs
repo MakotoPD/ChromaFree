@@ -124,7 +124,7 @@ impl<T: TensorElement> ModelInputBuilder<T> {
                 }
             }
             TensorLayout::Nhwc => {
-                for (index, pixel) in tensor.chunks_exact_mut(3).enumerate() {
+                for (index, pixel) in tensor.as_chunks_mut::<3>().0.iter_mut().enumerate() {
                     (pixel[0], pixel[1], pixel[2]) = convert(index);
                 }
             }

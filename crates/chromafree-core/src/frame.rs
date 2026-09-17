@@ -105,7 +105,7 @@ impl Nv12Frame {
 
     pub fn fill(&mut self, color: Yuv) {
         self.luma.fill(color.y);
-        for pair in self.chroma.chunks_exact_mut(2) {
+        for pair in self.chroma.as_chunks_mut::<2>().0.iter_mut() {
             pair[0] = color.u;
             pair[1] = color.v;
         }

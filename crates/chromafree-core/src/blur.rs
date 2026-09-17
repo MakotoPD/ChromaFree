@@ -176,7 +176,7 @@ fn downsample<const C: usize>(source: &[u8], width: usize, height: usize, target
         let top = &source[y0 * stride..(y0 + 1) * stride];
         let bottom = &source[y1 * stride..(y1 + 1) * stride];
         let full_pairs = width / 2;
-        for (tx, pixel) in row.chunks_exact_mut(C).enumerate() {
+        for (tx, pixel) in row.as_chunks_mut::<C>().0.iter_mut().enumerate() {
             let x0 = tx * 2 * C;
             let x1 = if tx < full_pairs { x0 + C } else { x0 };
             for c in 0..C {
@@ -293,7 +293,7 @@ mod tests {
     fn sharp_edge_is_spread_and_energy_is_roughly_preserved() {
         let size = FrameSize::new(256, 64).unwrap();
         let mut source = Nv12Frame::filled(size, Yuv::BLACK);
-        for row in source.planes_mut().0.chunks_exact_mut(256) {
+        for row in source.planes_mut().0.as_chunks_mut::<256>().0.iter_mut() {
             row[128..].fill(235);
         }
         let mut target = Nv12Frame::new(size);
@@ -311,7 +311,7 @@ mod tests {
     fn stronger_blur_spreads_further() {
         let size = FrameSize::new(512, 256).unwrap();
         let mut source = Nv12Frame::filled(size, Yuv::BLACK);
-        for row in source.planes_mut().0.chunks_exact_mut(512) {
+        for row in source.planes_mut().0.as_chunks_mut::<512>().0.iter_mut() {
             row[256..].fill(235);
         }
         let spread = |strength| {

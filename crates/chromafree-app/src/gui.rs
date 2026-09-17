@@ -118,7 +118,7 @@ fn render_preview(output: &PipelineOutput<'_>, matrix: ColorMatrix, preview: &mu
                 .enumerate()
             {
                 let chroma_row = &frame.chroma()[y / 2 * chroma_stride..(y / 2 + 1) * chroma_stride];
-                for (x, (pixel, &luma)) in row.chunks_exact_mut(4).zip(luma_row).enumerate() {
+                for (x, (pixel, &luma)) in row.as_chunks_mut::<4>().0.iter_mut().zip(luma_row).enumerate() {
                     let c = 298 * (i32::from(luma) - 16);
                     let d = i32::from(chroma_row[x & !1]) - 128;
                     let e = i32::from(chroma_row[(x & !1) + 1]) - 128;
@@ -136,7 +136,13 @@ fn render_preview(output: &PipelineOutput<'_>, matrix: ColorMatrix, preview: &mu
                 .zip(frame.data().chunks_exact(width * 4))
                 .enumerate()
             {
-                for (x, (pixel, source)) in row.chunks_exact_mut(4).zip(source_row.chunks_exact(4)).enumerate() {
+                for (x, (pixel, source)) in row
+                    .as_chunks_mut::<4>()
+                    .0
+                    .iter_mut()
+                    .zip(source_row.as_chunks::<4>().0.iter())
+                    .enumerate()
+                {
                     let checker = if (x / PREVIEW_CHECKER_SIZE + y / PREVIEW_CHECKER_SIZE).is_multiple_of(2) {
                         PREVIEW_CHECKER_LIGHT
                     } else {
@@ -790,7 +796,7 @@ mod tests {
     fn preview_keeps_output_resolution_and_shows_transparency_on_a_checkerboard() {
         let size = FrameSize::new(1280, 720).unwrap();
         let mut frame = BgraFrame::new(size);
-        for pixel in frame.data_mut().chunks_exact_mut(4) {
+        for pixel in frame.data_mut().as_chunks_mut::<4>().0.iter_mut() {
             pixel.copy_from_slice(&[10, 20, 30, 255]);
         }
         frame.data_mut()[3] = 0;

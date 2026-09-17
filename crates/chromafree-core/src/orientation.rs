@@ -102,13 +102,18 @@ impl Orientation {
             } else if step == -1 {
                 let first = start + P - row_bytes;
                 let source_row = &source[first..first + row_bytes];
-                for (out_pixel, source_pixel) in out_row.chunks_exact_mut(P).zip(source_row.chunks_exact(P).rev()) {
+                for (out_pixel, source_pixel) in out_row
+                    .as_chunks_mut::<P>()
+                    .0
+                    .iter_mut()
+                    .zip(source_row.as_chunks::<P>().0.iter().rev())
+                {
                     out_pixel.copy_from_slice(source_pixel);
                 }
             } else {
                 let mut index = row_start;
                 let byte_step = step * pixel;
-                for out_pixel in out_row.chunks_exact_mut(P) {
+                for out_pixel in out_row.as_chunks_mut::<P>().0.iter_mut() {
                     let i = index as usize;
                     out_pixel.copy_from_slice(&source[i..i + P]);
                     index += byte_step;

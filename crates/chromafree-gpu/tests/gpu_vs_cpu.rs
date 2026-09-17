@@ -224,7 +224,7 @@ fn gpu_rvm_and_mediapipe_cut_out_the_person_photo() {
         let mut alpha = Vec::new();
         for _ in 0..10 {
             alpha = match gpu.process(&photo, OutputFormat::Bgra).unwrap() {
-                PipelineOutput::Bgra(frame) => frame.data().chunks_exact(4).map(|p| p[3]).collect(),
+                PipelineOutput::Bgra(frame) => frame.data().as_chunks::<4>().0.iter().map(|p| p[3]).collect(),
                 PipelineOutput::Nv12(_) => panic!("expected BGRA"),
             };
         }

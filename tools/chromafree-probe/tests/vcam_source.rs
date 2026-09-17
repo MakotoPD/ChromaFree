@@ -62,7 +62,7 @@ fn spawn_producer(stop: Arc<AtomicBool>) -> thread::JoinHandle<ProducerReport> {
                 match format {
                     PixelFormat::Nv12 => pixels.fill(PRODUCER_VALUE),
                     PixelFormat::Bgra => {
-                        for pixel in pixels.chunks_exact_mut(4) {
+                        for pixel in pixels.as_chunks_mut::<4>().0.iter_mut() {
                             pixel.copy_from_slice(&[PRODUCER_VALUE, PRODUCER_VALUE, PRODUCER_VALUE, PRODUCER_ALPHA]);
                         }
                     }

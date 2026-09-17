@@ -566,7 +566,9 @@ impl GpuPipeline {
         let mut buffer = self.device.upload_buffer(frame_bytes(output))?;
         for (chunk, value) in buffer
             .bytes_mut()
-            .chunks_exact_mut(4)
+            .as_chunks_mut::<4>()
+            .0
+            .iter_mut()
             .zip(frame.luma().iter().chain(frame.chroma()))
         {
             chunk.copy_from_slice(&f32::from(*value).to_le_bytes());
@@ -605,7 +607,14 @@ impl GpuPipeline {
             let size = FrameSize::new(alpha.width, alpha.height)?;
             self.ensure_mask_buffers(size)?;
             if let Some(mask) = &mut self.mask {
-                for (chunk, &value) in mask.upload.bytes_mut().chunks_exact_mut(4).zip(alpha.data) {
+                for (chunk, &value) in mask
+                    .upload
+                    .bytes_mut()
+                    .as_chunks_mut::<4>()
+                    .0
+                    .iter_mut()
+                    .zip(alpha.data)
+                {
                     chunk.copy_from_slice(&(f32::from(value) / 255.0).to_le_bytes());
                 }
             }

@@ -140,7 +140,7 @@ fn draw_pattern(format: PixelFormat, width: u32, height: u32, frame_number: u64,
         }
         PixelFormat::Bgra => {
             for (y, row) in pixels[..width * height * 4].chunks_exact_mut(width * 4).enumerate() {
-                for (x, pixel) in row.chunks_exact_mut(4).enumerate() {
+                for (x, pixel) in row.as_chunks_mut::<4>().0.iter_mut().enumerate() {
                     let shade = if bar.contains(&x) { 255 } else { (x * 255 / width) as u8 };
                     let alpha = if y < height / 2 { 255 } else { (x * 255 / width) as u8 };
                     pixel.copy_from_slice(&[shade, (y * 255 / height) as u8, 255 - shade, alpha]);

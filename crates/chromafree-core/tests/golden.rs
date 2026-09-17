@@ -66,7 +66,9 @@ fn to_rgba(frame: &Nv12Frame, alpha: Option<&[u8]>) -> Vec<u8> {
     let mut bgra = BgraFrame::new(frame.size());
     nv12_to_bgra(frame, alpha, MATRIX, &mut bgra).unwrap();
     bgra.data()
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .flat_map(|p| [p[2], p[1], p[0], p[3]])
         .collect()
 }

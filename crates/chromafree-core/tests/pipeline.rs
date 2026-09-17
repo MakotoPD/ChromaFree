@@ -234,7 +234,9 @@ fn full_cpu_pipeline_on_a_person_photo() {
         nv12_to_bgra(&frame, None, settings.matrix(), &mut bgra).unwrap();
         let rgba = bgra
             .data()
-            .chunks_exact(4)
+            .as_chunks::<4>()
+            .0
+            .iter()
             .flat_map(|p| [p[2], p[1], p[0], 255])
             .collect();
         image::RgbaImage::from_raw(1280, 720, rgba)
