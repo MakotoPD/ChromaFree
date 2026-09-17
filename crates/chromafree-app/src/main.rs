@@ -25,6 +25,7 @@ impl EngineObserver for LogObserver {
             model = status.model.as_deref().unwrap_or("-"),
             fps = status.fps,
             processing_ms = status.processing_ms,
+            latency_ms = status.latency_ms.unwrap_or(-1.0),
             warning = status.warning.as_deref().unwrap_or("-"),
             "status"
         );

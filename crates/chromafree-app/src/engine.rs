@@ -43,6 +43,7 @@ pub struct EngineStatus {
     pub model: Option<String>,
     pub fps: f32,
     pub processing_ms: f32,
+    pub latency_ms: Option<f32>,
     pub warning: Option<String>,
 }
 
@@ -57,6 +58,7 @@ impl Default for EngineStatus {
             model: None,
             fps: 0.0,
             processing_ms: 0.0,
+            latency_ms: None,
             warning: None,
         }
     }
@@ -142,6 +144,8 @@ struct Stats {
     started: Instant,
     frames: u32,
     processing: Duration,
+    latency: Duration,
+    latency_samples: u32,
 }
 
 impl Stats {
@@ -150,6 +154,8 @@ impl Stats {
             started: Instant::now(),
             frames: 0,
             processing: Duration::ZERO,
+            latency: Duration::ZERO,
+            latency_samples: 0,
         }
     }
 }
@@ -369,10 +375,16 @@ impl Worker {
         let model = session.processor.active_model().map(str::to_owned);
         self.stats.frames += 1;
         self.stats.processing += started.elapsed();
+        if let Some(age) = session.camera.source.capture_age() {
+            self.stats.latency += age;
+            self.stats.latency_samples += 1;
+        }
         let elapsed = self.stats.started.elapsed();
         if elapsed >= STATS_INTERVAL {
             self.status.fps = self.stats.frames as f32 / elapsed.as_secs_f32();
             self.status.processing_ms = self.stats.processing.as_secs_f32() * 1000.0 / self.stats.frames as f32;
+            self.status.latency_ms = (self.stats.latency_samples > 0)
+                .then(|| self.stats.latency.as_secs_f32() * 1000.0 / self.stats.latency_samples as f32);
             self.status.model = model;
             self.stats = Stats::new();
             self.notify();

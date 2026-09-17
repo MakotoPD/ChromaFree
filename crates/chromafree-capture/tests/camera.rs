@@ -50,7 +50,16 @@ fn reads_frames_from_the_first_camera() {
         let cpu_started = process_cpu_ms();
         let started = Instant::now();
         let (mut luma_min, mut luma_max, mut chroma_min, mut chroma_max) = (255u8, 0u8, 255u8, 0u8);
+        let mut ages = Vec::with_capacity(FRAMES);
         for _ in 0..FRAMES {
+            reader.read().unwrap();
+            ages.push(
+                reader
+                    .capture_age()
+                    .expect("camera frames carry timestamps")
+                    .as_secs_f64()
+                    * 1000.0,
+            );
             let frame = reader.read().unwrap();
             luma_min = luma_min.min(*frame.luma().iter().min().unwrap());
             luma_max = luma_max.max(*frame.luma().iter().max().unwrap());
@@ -64,6 +73,13 @@ fn reads_frames_from_the_first_camera() {
             FRAMES as f64 / elapsed,
             cpu / FRAMES as f64
         );
+        ages.sort_by(f64::total_cmp);
+        println!(
+            "  capture age at read: median {:.1} ms, p95 {:.1} ms",
+            ages[ages.len() / 2],
+            ages[ages.len() * 95 / 100]
+        );
+        assert!(ages[ages.len() / 2] < 1000.0, "timestamps are not on the system clock");
         assert_eq!(reader.size().width(), format.width);
     }
 }

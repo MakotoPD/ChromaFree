@@ -7,6 +7,10 @@ use crate::error::CaptureError;
 pub trait FrameSource {
     fn size(&self) -> FrameSize;
     fn read(&mut self) -> Result<&Nv12Frame, CaptureError>;
+
+    fn capture_age(&self) -> Option<Duration> {
+        None
+    }
 }
 
 pub struct SyntheticSource {

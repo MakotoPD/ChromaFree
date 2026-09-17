@@ -1,9 +1,11 @@
+use std::time::Duration;
+
 use chromafree_core::{FrameSize, Nv12Frame};
 use windows::Win32::Media::MediaFoundation::{
     IMF2DBuffer, IMFMediaBuffer, IMFSample, MF_LOW_LATENCY, MF_MT_FRAME_SIZE, MF_MT_MAJOR_TYPE, MF_MT_SUBTYPE,
     MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, MF_SOURCE_READER_ENABLE_ADVANCED_VIDEO_PROCESSING,
     MF_SOURCE_READER_FIRST_VIDEO_STREAM, MF_SOURCE_READERF_ENDOFSTREAM, MF_SOURCE_READERF_ERROR, MF_VERSION,
-    MFCreateAttributes, MFCreateMediaType, MFMediaType_Video, MFSTARTUP_FULL, MFShutdown, MFStartup,
+    MFCreateAttributes, MFCreateMediaType, MFGetSystemTime, MFMediaType_Video, MFSTARTUP_FULL, MFShutdown, MFStartup,
     MFVideoFormat_NV12,
 };
 use windows::Win32::System::Com::{COINIT_MULTITHREADED, CoInitializeEx, CoUninitialize};
@@ -37,6 +39,7 @@ pub struct CameraReader {
     opened: OpenedSource,
     format: CaptureFormat,
     frame: Nv12Frame,
+    timestamp: Option<i64>,
 }
 
 const STREAM: u32 = MF_SOURCE_READER_FIRST_VIDEO_STREAM.0 as u32;
@@ -79,6 +82,7 @@ impl CameraReader {
             opened,
             format: *format,
             frame: Nv12Frame::new(size),
+            timestamp: None,
         })
     }
 
@@ -145,18 +149,30 @@ impl FrameSource for CameraReader {
         loop {
             let mut flags = 0;
             let mut sample = None;
+            let mut timestamp = 0;
             unsafe {
-                self.opened
-                    .reader
-                    .ReadSample(STREAM, 0, None, Some(&mut flags), None, Some(&mut sample))
+                self.opened.reader.ReadSample(
+                    STREAM,
+                    0,
+                    None,
+                    Some(&mut flags),
+                    Some(&mut timestamp),
+                    Some(&mut sample),
+                )
             }?;
             if flags & (MF_SOURCE_READERF_ERROR.0 | MF_SOURCE_READERF_ENDOFSTREAM.0) as u32 != 0 {
                 return Err(CaptureError::StreamEnded);
             }
             if let Some(sample) = sample {
                 self.copy_sample(&sample)?;
+                self.timestamp = Some(timestamp);
                 return Ok(&self.frame);
             }
         }
+    }
+
+    fn capture_age(&self) -> Option<Duration> {
+        let age = unsafe { MFGetSystemTime() } - self.timestamp?;
+        u64::try_from(age).ok().map(|ticks| Duration::from_nanos(ticks * 100))
     }
 }

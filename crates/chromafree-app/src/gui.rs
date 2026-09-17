@@ -112,10 +112,16 @@ fn downscale_to_rgba(frame: &BgraFrame, preview: &mut PreviewFrame) {
 pub fn status_lines(status: &EngineStatus) -> (String, String, String, bool) {
     let headline = match &status.state {
         EngineState::Idle => "Czeka na aplikację, która użyje kamery ChromaFree".to_owned(),
-        EngineState::Running => format!(
-            "Działa: {:.0} kl./s, {:.1} ms na klatkę",
-            status.fps, status.processing_ms
-        ),
+        EngineState::Running => match status.latency_ms {
+            Some(latency) => format!(
+                "Działa: {:.0} kl./s, {:.1} ms na klatkę, opóźnienie {:.0} ms",
+                status.fps, status.processing_ms, latency
+            ),
+            None => format!(
+                "Działa: {:.0} kl./s, {:.1} ms na klatkę",
+                status.fps, status.processing_ms
+            ),
+        },
         EngineState::NoCamera => "Nie wykryto żadnej kamery".to_owned(),
         EngineState::CameraMissing(name) => {
             format!("Kamera „{name}” nie jest podłączona. Wybierz inną w zakładce Kamera.")
