@@ -24,7 +24,8 @@ UninstallDisplayIcon={app}\chromafree.exe
 UninstallDisplayName=ChromaFree
 OutputDir={#OutputDir}
 OutputBaseFilename=ChromaFree-Setup-{#AppVersion}
-Compression=lzma2/ultra64
+Compression=lzma2/max
+LZMAUseSeparateProcess=yes
 SolidCompression=yes
 LZMANumBlockThreads=4
 WizardStyle=modern
@@ -63,7 +64,7 @@ Name: "{autoprograms}\ChromaFree"; Filename: "{app}\chromafree.exe"
 Name: "{autodesktop}\ChromaFree"; Filename: "{app}\chromafree.exe"; Tasks: desktopicon
 
 [Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "ChromaFree"; ValueData: """{app}\chromafree.exe"" --minimized"; Tasks: autostart; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "ChromaFree"; ValueData: """{app}\chromafree.exe"" --minimized"; Tasks: autostart; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\chromafree.exe"; Parameters: "--install-camera"; StatusMsg: "{cm:InstallingCamera}"; Flags: runhidden waituntilterminated
