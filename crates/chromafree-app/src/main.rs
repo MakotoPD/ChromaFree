@@ -9,7 +9,7 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use chromafree_app::camera::MediaFoundationCameras;
 use chromafree_app::config::Config;
-use chromafree_app::desktop::SingleInstance;
+use chromafree_app::desktop::{SingleInstance, log_directory};
 use chromafree_app::engine::{Engine, EngineObserver, EngineOptions, EngineStatus};
 use chromafree_app::gui;
 use chromafree_app::virtual_camera::{install_system_camera, uninstall_system_camera};
@@ -57,7 +57,7 @@ fn models_dir() -> Result<PathBuf> {
 }
 
 fn init_logging() -> Option<PathBuf> {
-    let directory = PathBuf::from(std::env::var_os("LOCALAPPDATA")?).join("ChromaFree");
+    let directory = log_directory()?;
     std::fs::create_dir_all(&directory).ok()?;
     let path = directory.join("chromafree.log");
     if std::fs::metadata(&path).is_ok_and(|metadata| metadata.len() > LOG_ROTATE_BYTES) {

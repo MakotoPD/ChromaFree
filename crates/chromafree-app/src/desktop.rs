@@ -13,7 +13,8 @@ use windows::Win32::System::Com::{
 };
 use windows::Win32::System::Threading::{CreateMutexW, INFINITE, WaitForSingleObject};
 use windows::Win32::UI::Shell::Common::COMDLG_FILTERSPEC;
-use windows::Win32::UI::Shell::{FileOpenDialog, IFileOpenDialog, SIGDN_FILESYSPATH};
+use windows::Win32::UI::Shell::{FileOpenDialog, IFileOpenDialog, SIGDN_FILESYSPATH, ShellExecuteW};
+use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 use windows::core::{HRESULT, HSTRING, w};
 
 pub struct SingleInstance(HANDLE);
@@ -58,6 +59,21 @@ pub fn pick_background_image() -> Result<Option<PathBuf>> {
     let path = unsafe { name.to_string() };
     unsafe { CoTaskMemFree(Some(name.0.cast())) };
     Ok(Some(PathBuf::from(path?)))
+}
+
+pub const PROJECT_URL: &str = env!("CARGO_PKG_REPOSITORY");
+pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const APP_AUTHOR: &str = env!("CARGO_PKG_AUTHORS");
+
+pub fn log_directory() -> Option<PathBuf> {
+    Some(PathBuf::from(std::env::var_os("LOCALAPPDATA")?).join("ChromaFree"))
+}
+
+pub fn open_in_shell(target: &str) {
+    let result = unsafe { ShellExecuteW(None, w!("open"), &HSTRING::from(target), None, None, SW_SHOWNORMAL) };
+    if result.0 as isize <= 32 {
+        tracing::warn!(target, "opening failed");
+    }
 }
 
 pub fn watch_directory(directory: &Path, on_change: impl Fn() + Send + 'static) -> Result<()> {

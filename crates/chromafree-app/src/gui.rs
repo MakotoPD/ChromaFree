@@ -19,7 +19,9 @@ use crate::camera::MediaFoundationCameras;
 use crate::config::{
     Config, DeviceConfig, EffectMode, FormatConfig, MethodConfig, format_color, parse_color, parse_quality,
 };
-use crate::desktop::{pick_background_image, watch_directory};
+use crate::desktop::{
+    APP_AUTHOR, APP_VERSION, PROJECT_URL, log_directory, open_in_shell, pick_background_image, watch_directory,
+};
 use crate::engine::{
     Engine, EngineCommand, EngineObserver, EngineOptions, EngineState, EngineStatus, VirtualCameraState,
 };
@@ -366,6 +368,14 @@ impl App {
         window.on_reset_mask(|| with_app(App::reset_mask));
         window.on_color_preset(|color| with_app(move |app| app.color_preset(&color)));
         window.on_preview_toggled(|enabled| with_app(move |app| app.set_preview(enabled)));
+        window.set_app_version(APP_VERSION.into());
+        window.set_app_author(APP_AUTHOR.into());
+        window.on_open_project(|| open_in_shell(PROJECT_URL));
+        window.on_open_logs(|| {
+            if let Some(directory) = log_directory() {
+                open_in_shell(&directory.display().to_string());
+            }
+        });
         window.window().on_close_requested(|| {
             let _ = slint::invoke_from_event_loop(|| with_app(App::close_window));
             CloseRequestResponse::HideWindow

@@ -8,6 +8,9 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
 license = "GPL-3.0-or-later"
+authors = ["MakotoPD"]
+repository = "https://github.com/MakotoPD/ChromaFree"
+homepage = "https://github.com/MakotoPD/ChromaFree"
 publish = false
 
 [workspace.dependencies]

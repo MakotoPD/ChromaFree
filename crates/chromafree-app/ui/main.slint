@@ -83,6 +83,10 @@ export component MainWindow inherits Window {
     callback reset-mask();
     in-out property <bool> preview-enabled;
     callback preview-toggled(bool);
+    in property <string> app-version;
+    in property <string> app-author;
+    callback open-project();
+    callback open-logs();
 
     HorizontalBox {
         VerticalBox {
@@ -441,6 +445,75 @@ export component MainWindow inherits Window {
                                     clicked => {
                                         root.reset-mask();
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Tab {
+                title: "O programie";
+                ScrollView {
+                    VerticalBox {
+                        alignment: start;
+                        HorizontalBox {
+                            padding: 0;
+                            Image {
+                                source: @image-url("../assets/chromafree-256.png");
+                                width: 72px;
+                                height: 72px;
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                spacing: 2px;
+                                Text {
+                                    text: "ChromaFree";
+                                    font-size: 22px;
+                                    font-weight: 700;
+                                }
+                                Text {
+                                    text: "Wersja " + root.app-version;
+                                    color: #c9ccd1;
+                                }
+                                Text {
+                                    text: "Autor: " + root.app-author;
+                                    color: #c9ccd1;
+                                }
+                            }
+                        }
+                        Text {
+                            text: "Wirtualna kamera, która usuwa, podmienia lub rozmywa tło obrazu z kamerki. Obraz jest przetwarzany lokalnie na karcie graficznej i nigdzie nie jest wysyłany.";
+                            wrap: word-wrap;
+                        }
+                        GroupBox {
+                            title: "Licencja";
+                            VerticalBox {
+                                Hint {
+                                    text: "ChromaFree jest wolnym oprogramowaniem na licencji GNU GPL w wersji 3 lub nowszej. Możesz go używać, zmieniać i rozpowszechniać na jej warunkach. Program jest dostarczany bez żadnej gwarancji. Kod źródłowy jest dostępny na stronie projektu.";
+                                }
+                            }
+                        }
+                        GroupBox {
+                            title: "Wykorzystane komponenty";
+                            VerticalBox {
+                                Hint {
+                                    text: "Robust Video Matting (GPL-3.0), MediaPipe Selfie Segmentation (Apache-2.0), ONNX Runtime (MIT), DirectML (Microsoft), Slint (GPL-3.0), windows-rs i tray-icon (MIT/Apache-2.0). Pełna lista z licencjami jest w pliku THIRD_PARTY.md w folderze instalacji.";
+                                }
+                            }
+                        }
+                        HorizontalBox {
+                            padding: 0;
+                            Button {
+                                text: "Strona projektu";
+                                clicked => {
+                                    root.open-project();
+                                }
+                            }
+                            Button {
+                                text: "Folder z logami";
+                                clicked => {
+                                    root.open-logs();
                                 }
                             }
                         }

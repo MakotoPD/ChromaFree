@@ -17,6 +17,17 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(wil)
 
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/../Cargo.toml CHROMAFREE_VERSION_LINE REGEX "^version = \"[0-9]+\\.[0-9]+\\.[0-9]+\"")
+string(REGEX REPLACE "^version = \"([0-9]+)\\.([0-9]+)\\.([0-9]+)\"" "\\1.\\2.\\3" CHROMAFREE_VERSION "${CHROMAFREE_VERSION_LINE}")
+string(REPLACE "." ";" CHROMAFREE_VERSION_PARTS "${CHROMAFREE_VERSION}")
+list(GET CHROMAFREE_VERSION_PARTS 0 CHROMAFREE_VERSION_MAJOR)
+list(GET CHROMAFREE_VERSION_PARTS 1 CHROMAFREE_VERSION_MINOR)
+list(GET CHROMAFREE_VERSION_PARTS 2 CHROMAFREE_VERSION_PATCH)
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/../Cargo.toml CHROMAFREE_AUTHORS_LINE REGEX "^authors = ")
+string(REGEX REPLACE "^authors = \\[\"([^\"]+)\".*" "\\1" CHROMAFREE_AUTHOR "${CHROMAFREE_AUTHORS_LINE}")
+configure_file(src/vcam-source.rc.in ${CMAKE_CURRENT_BINARY_DIR}/vcam-source.rc @ONLY)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../Cargo.toml)
+
 set(CHROMAFREE_COMPILE_OPTIONS /W4 /WX /permissive- /EHsc /utf-8 /external:anglebrackets /external:W0)
 set(CHROMAFREE_DEFINITIONS UNICODE _UNICODE)
 
@@ -27,6 +38,7 @@ add_library(vcam-source SHARED
     src/media_stream.cpp
     src/offline_frame.cpp
     src/vcam-source.def
+    ${CMAKE_CURRENT_BINARY_DIR}/vcam-source.rc
 )
 target_precompile_headers(vcam-source PRIVATE src/pch.h)
 target_include_directories(vcam-source SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../crates/chromafree-ipc/include)

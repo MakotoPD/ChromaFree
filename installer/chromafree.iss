@@ -1,13 +1,26 @@
 #define AppVersion GetEnv("CHROMAFREE_VERSION")
 #define PackageDir GetEnv("CHROMAFREE_PACKAGE_DIR")
 #define OutputDir GetEnv("CHROMAFREE_INSTALLER_DIR")
+#define AppAuthor GetEnv("CHROMAFREE_AUTHOR")
+#define AppUrl GetEnv("CHROMAFREE_URL")
 
 [Setup]
 AppId={{B1F6639B-9B28-461F-B14A-705F071D3D08}
 AppName=ChromaFree
 AppVersion={#AppVersion}
 AppVerName=ChromaFree {#AppVersion}
-AppPublisher=ChromaFree
+AppPublisher={#AppAuthor}
+AppPublisherURL={#AppUrl}
+AppSupportURL={#AppUrl}/issues
+AppUpdatesURL={#AppUrl}/releases
+AppCopyright=Copyright (C) 2026 {#AppAuthor}
+AppComments=Virtual camera that removes, replaces or blurs the webcam background on the GPU
+VersionInfoVersion={#AppVersion}
+VersionInfoCompany={#AppAuthor}
+VersionInfoDescription=ChromaFree Setup
+VersionInfoProductName=ChromaFree
+VersionInfoProductVersion={#AppVersion}
+VersionInfoCopyright=Copyright (C) 2026 {#AppAuthor}
 DefaultDirName={autopf}\ChromaFree
 DefaultGroupName=ChromaFree
 DisableProgramGroupPage=yes

@@ -39,7 +39,7 @@ Measured on an AMD Radeon RX 6950 XT with a 1080p camera, 1280×720 at 30 FPS wi
 
 ## Installation
 
-Download `ChromaFree-Setup-<version>.exe` from the releases page and run it. The installer needs administrator rights
+Download `ChromaFree-Setup-<version>.exe` from the [releases page](https://github.com/MakotoPD/ChromaFree/releases) and run it. The installer needs administrator rights
 once, because the virtual camera source (`vcam-source.dll`) is loaded by the Windows Frame Server service and must be
 registered for all users.
 

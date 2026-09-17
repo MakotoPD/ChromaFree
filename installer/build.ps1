@@ -6,7 +6,10 @@ $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $package = Join-Path $root 'build\package'
 $output = Join-Path $root 'build\installer'
 $modelsSource = Join-Path $root 'models'
-$version = (Select-String -Path (Join-Path $root 'Cargo.toml') -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+$manifest = Join-Path $root 'Cargo.toml'
+$version = (Select-String -Path $manifest -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+$author = (Select-String -Path $manifest -Pattern '^authors = \["([^"]+)"').Matches[0].Groups[1].Value
+$url = (Select-String -Path $manifest -Pattern '^repository = "(.+)"').Matches[0].Groups[1].Value
 
 function Invoke-Checked([string] $Description, [scriptblock] $Command) {
     & $Command
@@ -76,6 +79,8 @@ Write-Host ("Staged ChromaFree {0} in {1} ({2:N0} MB, {3} models)" -f $version, 
 
 $iscc = Find-InnoSetup
 $env:CHROMAFREE_VERSION = $version
+$env:CHROMAFREE_AUTHOR = $author
+$env:CHROMAFREE_URL = $url
 $env:CHROMAFREE_PACKAGE_DIR = $package
 $env:CHROMAFREE_INSTALLER_DIR = $output
 Invoke-Checked 'Inno Setup' { & $iscc (Join-Path $PSScriptRoot 'chromafree.iss') }

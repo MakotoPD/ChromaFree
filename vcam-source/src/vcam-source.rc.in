@@ -1,0 +1,27 @@
+#include <winver.h>
+
+1 VERSIONINFO
+FILEVERSION @CHROMAFREE_VERSION_MAJOR@,@CHROMAFREE_VERSION_MINOR@,@CHROMAFREE_VERSION_PATCH@,0
+PRODUCTVERSION @CHROMAFREE_VERSION_MAJOR@,@CHROMAFREE_VERSION_MINOR@,@CHROMAFREE_VERSION_PATCH@,0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_DLL
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "@CHROMAFREE_AUTHOR@"
+            VALUE "FileDescription", "ChromaFree virtual camera media source"
+            VALUE "FileVersion", "@CHROMAFREE_VERSION@"
+            VALUE "InternalName", "vcam-source"
+            VALUE "LegalCopyright", "Copyright (C) 2026 @CHROMAFREE_AUTHOR@. GPL-3.0-or-later"
+            VALUE "OriginalFilename", "vcam-source.dll"
+            VALUE "ProductName", "ChromaFree"
+            VALUE "ProductVersion", "@CHROMAFREE_VERSION@"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
