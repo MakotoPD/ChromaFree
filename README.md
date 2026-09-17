@@ -43,15 +43,17 @@ Download `ChromaFree-Setup-<version>.exe` from the releases page and run it. The
 once, because the virtual camera source (`vcam-source.dll`) is loaded by the Windows Frame Server service and must be
 registered for all users.
 
-After installation start ChromaFree from the Start menu. It lives in the tray; closing the window keeps the virtual
-camera available. Pick **ChromaFree** as the camera in the app you want to use.
+The installer adds the **ChromaFree** camera to Windows for all users. It stays available even when the app is not
+running and then shows an offline image. Start ChromaFree from the Start menu (or let it start when you sign in); it
+lives in the tray and closing the window keeps processing available. Pick **ChromaFree** as the camera in the app you
+want to use.
 
 ## Usage tips
 
 - **Transparent background in Meld Studio:** choose *Usunięcie tła: przezroczystość* (background removal:
   transparency). Meld Studio keeps the alpha channel; Discord, browsers and OBS receive the fallback color.
 - **Chroma key workflows:** choose the color effect with the green screen preset and key it in your streaming app.
-- **Changing the output resolution** briefly restarts the stream in apps that are using the camera.
+- **Changing the output resolution** applies when an app opens the camera again; apps that keep it open continue at their current resolution.
 - The configuration is stored in `%APPDATA%\ChromaFree\config.toml` and reloaded when the file changes.
 - Logs are written to `%LOCALAPPDATA%\ChromaFree\chromafree.log`.
 
