@@ -169,6 +169,7 @@ pub fn status_lines(status: &EngineStatus) -> (String, String, String, bool) {
         EngineState::CameraMissing(name) => {
             format!("Kamera „{name}” nie jest podłączona. Wybierz inną w zakładce Kamera.")
         }
+        EngineState::CameraBusy => "Kamera jest zajęta przez inną aplikację albo brakuje przepustowości USB. Zamknij program, który używa kamery bezpośrednio, a ChromaFree spróbuje ponownie.".to_owned(),
         EngineState::Error(error) => format!("Błąd: {error}"),
     };
     let mut details = Vec::new();

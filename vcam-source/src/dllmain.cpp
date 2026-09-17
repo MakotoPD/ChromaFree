@@ -15,6 +15,25 @@ namespace
         return ProcessIdToSessionId(processId, &session) ? session : 0;
     }
 
+    std::string ProcessName(DWORD processId)
+    {
+        wil::unique_handle process(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId));
+        std::array<wchar_t, MAX_PATH> path{};
+        auto size = static_cast<DWORD>(path.size());
+        if (!process || !QueryFullProcessImageNameW(process.get(), 0, path.data(), &size))
+        {
+            return "?";
+        }
+        const std::wstring_view full(path.data(), size);
+        const auto name = full.substr(full.find_last_of(L'\\') + 1);
+        std::string narrow;
+        for (const auto character : name)
+        {
+            narrow.push_back(character < 128 ? static_cast<char>(character) : '?');
+        }
+        return narrow;
+    }
+
     DWORD ProducerSession(IMFAttributes* attributes)
     {
         UINT32 clientPid = 0;
@@ -54,7 +73,7 @@ struct Activator : winrt::implements<Activator, AttributesBase<IMFActivate>>
                 UINT32 clientPid = 0;
                 LOG_IF_FAILED(GetUINT32(MF_FRAMESERVER_CLIENTCONTEXT_CLIENTPID, &clientPid));
                 const auto session = ProducerSession(this);
-                LogEvent("activate for client pid %u, producer session %lu", clientPid, session);
+                LogEvent("activate for client pid %u (%s), producer session %lu", clientPid, ProcessName(clientPid ? clientPid : GetCurrentProcessId()).c_str(), session);
                 auto source = winrt::make_self<MediaSource>();
                 RETURN_IF_FAILED(source->Initialize(this, session));
                 _source = std::move(source);

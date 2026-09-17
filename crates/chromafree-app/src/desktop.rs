@@ -13,9 +13,12 @@ use windows::Win32::System::Com::{
 };
 use windows::Win32::System::Threading::{CreateMutexW, INFINITE, WaitForSingleObject};
 use windows::Win32::UI::Shell::Common::COMDLG_FILTERSPEC;
-use windows::Win32::UI::Shell::{FileOpenDialog, IFileOpenDialog, SIGDN_FILESYSPATH, ShellExecuteW};
+use windows::Win32::UI::Shell::{
+    FOLDERID_LocalAppData, FOLDERID_RoamingAppData, FileOpenDialog, IFileOpenDialog, KF_FLAG_DEFAULT,
+    SHGetKnownFolderPath, SIGDN_FILESYSPATH, ShellExecuteW,
+};
 use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
-use windows::core::{HRESULT, HSTRING, w};
+use windows::core::{GUID, HRESULT, HSTRING, w};
 
 pub struct SingleInstance(HANDLE);
 
@@ -65,8 +68,19 @@ pub const PROJECT_URL: &str = env!("CARGO_PKG_REPOSITORY");
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const APP_AUTHOR: &str = env!("CARGO_PKG_AUTHORS");
 
+fn known_folder(id: &GUID) -> Option<PathBuf> {
+    let path = unsafe { SHGetKnownFolderPath(id, KF_FLAG_DEFAULT, None) }.ok()?;
+    let text = unsafe { path.to_string() };
+    unsafe { CoTaskMemFree(Some(path.0.cast())) };
+    text.ok().map(PathBuf::from)
+}
+
 pub fn log_directory() -> Option<PathBuf> {
-    Some(PathBuf::from(std::env::var_os("LOCALAPPDATA")?).join("ChromaFree"))
+    Some(known_folder(&FOLDERID_LocalAppData)?.join("ChromaFree"))
+}
+
+pub fn config_directory() -> Option<PathBuf> {
+    Some(known_folder(&FOLDERID_RoamingAppData)?.join("ChromaFree"))
 }
 
 pub fn open_in_shell(target: &str) {

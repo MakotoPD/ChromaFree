@@ -5,9 +5,12 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
-use chromafree_capture::{CaptureFormat, MediaFoundation, chromafree_camera_present};
+use chromafree_capture::{CaptureError, CaptureFormat, MediaFoundation, chromafree_camera_present};
 use chromafree_core::{ColorMatrix, FrameSize, OutputFormat, PipelineOutput, PipelineSettings, RgbImage};
 use chromafree_ipc::{ObjectNames, OutputMode, PixelFormat, ProducerChannel, ProducerWaker};
+use windows::Win32::Media::MediaFoundation::{
+    MF_E_HW_MFT_FAILED_START_STREAMING, MF_E_VIDEO_RECORDING_DEVICE_PREEMPTED,
+};
 
 use crate::camera::{CameraOpenError, CameraProvider, OpenedCamera};
 use crate::config::{CameraConfig, Config, EffectMode};
@@ -23,7 +26,30 @@ pub enum EngineState {
     Running,
     NoCamera,
     CameraMissing(String),
+    CameraBusy,
     Error(String),
+}
+
+fn failure_state(error: &anyhow::Error) -> EngineState {
+    let busy_codes = [
+        MF_E_HW_MFT_FAILED_START_STREAMING,
+        MF_E_VIDEO_RECORDING_DEVICE_PREEMPTED,
+    ];
+    let busy = error.chain().any(|cause| {
+        let code = cause
+            .downcast_ref::<windows::core::Error>()
+            .map(windows::core::Error::code)
+            .or_else(|| match cause.downcast_ref::<CaptureError>() {
+                Some(CaptureError::Windows(error)) => Some(error.code()),
+                _ => None,
+            });
+        code.is_some_and(|code| busy_codes.contains(&code))
+    });
+    if busy {
+        EngineState::CameraBusy
+    } else {
+        EngineState::Error(format!("{error:#}"))
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -247,7 +273,7 @@ impl Worker {
                 tracing::warn!(error = format!("{error:#}"), "frame processing failed");
                 self.session = None;
                 self.channel.set_active(false);
-                self.status.state = EngineState::Error(format!("{error:#}"));
+                self.status.state = failure_state(&error);
                 self.notify();
                 self.channel.wait_for_consumer_change(RETRY_DELAY);
             }
@@ -302,7 +328,7 @@ impl Worker {
                 let state = match error {
                     CameraOpenError::NoCamera => EngineState::NoCamera,
                     CameraOpenError::Missing(name) => EngineState::CameraMissing(name),
-                    CameraOpenError::Other(error) => EngineState::Error(format!("{error:#}")),
+                    CameraOpenError::Other(error) => failure_state(&error),
                 };
                 if self.status.state != state {
                     tracing::warn!(?state, "camera unavailable");
@@ -516,4 +542,18 @@ fn output_mode(config: &Config) -> OutputMode {
 
 fn camera_changed(previous: &CameraConfig, current: &CameraConfig) -> bool {
     previous.symbolic_link != current.symbolic_link || previous.format != current.format
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn busy_camera_errors_are_reported_as_camera_busy() {
+        let busy = anyhow::Error::from(CaptureError::Windows(MF_E_HW_MFT_FAILED_START_STREAMING.into()))
+            .context("opening the camera");
+        assert_eq!(failure_state(&busy), EngineState::CameraBusy);
+        let other = anyhow::anyhow!("something else");
+        assert!(matches!(failure_state(&other), EngineState::Error(_)));
+    }
 }

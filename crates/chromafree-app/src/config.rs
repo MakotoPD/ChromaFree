@@ -286,8 +286,9 @@ impl Config {
         if let Some(path) = std::env::var_os("CHROMAFREE_CONFIG") {
             return Ok(PathBuf::from(path));
         }
-        let app_data = std::env::var_os("APPDATA").context("APPDATA is not set")?;
-        Ok(PathBuf::from(app_data).join("ChromaFree").join("config.toml"))
+        Ok(crate::desktop::config_directory()
+            .context("locating the roaming application data folder")?
+            .join("config.toml"))
     }
 
     pub fn load(path: &Path) -> Result<Self> {
