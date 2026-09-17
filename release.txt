@@ -1,0 +1,8 @@
+## Changes (v0.1.0)
+
+### Features
+- **Virtual camera with background effects**: ChromaFree shows up as a regular camera in Discord, OBS, browsers and Meld Studio. Blur the background with an adjustable strength, replace it with a color (green screen and blue screen presets or any color) or your own image, or remove it entirely with a transparent background for apps that support it.
+- **Runs on the GPU**: segmentation, blur and compositing run on any DirectX 12 graphics card, so the processor stays almost idle. Two masking methods are available: Robust Video Matting for accurate edges and MediaPipe for the lightest load.
+- **The camera is part of Windows**: the installer adds the ChromaFree camera for all users. When the app is not running, the camera shows an offline image instead of a frozen picture.
+- **Low resource usage**: the physical camera is opened only while an app uses ChromaFree and released a few seconds after it stops. With nothing using the camera the app uses no processor time.
+- **Settings window**: choose the input camera, its resolution and frame rate, the output resolution, rotation and mirroring, and tune the mask. A live preview shows exactly what other apps receive.

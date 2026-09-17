@@ -1,0 +1,143 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_release: ${{ steps.check.outputs.should_release }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Read version from Cargo.toml
+        id: version
+        run: |
+          VERSION=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+          if [ -z "$VERSION" ]; then
+            echo "Could not read the workspace version from Cargo.toml"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: v$VERSION"
+
+      - name: Check whether tag already exists
+        id: check
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping release."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag $TAG is new, proceeding with release."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate release notes
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          VERSION="v${{ steps.version.outputs.version }}"
+          VERSION_NUM="${{ steps.version.outputs.version }}"
+          CHANGELOG=$(awk "/^## Changes \(${VERSION}\)/{flag=1; next} /^## Changes \(v[0-9]/{if(flag) exit} flag" release.txt)
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="No specific changes documented for this version."
+          fi
+          {
+            echo "## Download"
+            echo ""
+            echo "| Platform | Architecture | Download |"
+            echo "|----------|--------------|----------|"
+            echo "| Windows 11 | x64 | [ChromaFree-Setup-${VERSION_NUM}.exe](https://github.com/${GITHUB_REPOSITORY}/releases/download/${VERSION}/ChromaFree-Setup-${VERSION_NUM}.exe) |"
+            echo ""
+            echo "Requires Windows 11 and a GPU with DirectX 12. The installer needs administrator rights to add the ChromaFree camera to Windows."
+            echo ""
+            echo "---"
+            echo ""
+            echo "## What's Changed"
+            echo ""
+            echo "$CHANGELOG"
+          } > release_body.md
+
+      - name: Upload release notes
+        if: steps.check.outputs.should_release == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release_body.md
+
+  release:
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Cache models
+        id: models
+        uses: actions/cache@v4
+        with:
+          path: |
+            models/*.onnx
+            models/*.tflite
+          key: models-${{ hashFiles('models/sources.txt', 'models/sha256.txt', 'models/download.ps1', 'models/*.py') }}
+
+      - name: Prepare models
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File models/download.ps1
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw "Installing Inno Setup failed with exit code $LASTEXITCODE" }
+          }
+
+      - name: Run tests
+        run: cargo test --release -p chromafree-core -p chromafree-ipc
+
+      - name: Build installer
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File installer/build.ps1
+
+      - name: Download release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+
+      - name: Create release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          gh release create "v$VERSION" "build/installer/ChromaFree-Setup-$VERSION.exe" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "ChromaFree v$VERSION" \
+            --notes-file release_body.md \
+            --latest
