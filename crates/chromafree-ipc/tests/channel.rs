@@ -76,3 +76,22 @@ fn waker_interrupts_consumer_wait_and_parts_are_concatenated() {
     assert_eq!(&out[..16], &luma);
     assert_eq!(&out[16..], &chroma);
 }
+
+#[test]
+fn every_reader_is_woken_for_each_published_frame() {
+    let names = unique_names("readers");
+    let mut producer = ProducerChannel::create(&names).unwrap();
+    let first = ReaderChannel::open(&names).unwrap();
+    let second = ReaderChannel::open(&names).unwrap();
+    let pixels = vec![0u8; PixelFormat::Nv12.frame_size(4, 4)];
+    for _ in 0..3 {
+        producer.publish(PixelFormat::Nv12, 4, 4, &pixels).unwrap();
+        assert!(first.wait_for_frame(Duration::from_millis(500)));
+        assert!(second.wait_for_frame(Duration::from_millis(500)));
+    }
+    drop(second);
+    let third = ReaderChannel::open(&names).unwrap();
+    producer.publish(PixelFormat::Nv12, 4, 4, &pixels).unwrap();
+    assert!(first.wait_for_frame(Duration::from_millis(500)));
+    assert!(third.wait_for_frame(Duration::from_millis(500)));
+}

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "clsid.h"
 #include "media_source.h"
+#include "log.h"
 
 DEFINE_GUID(MF_FRAMESERVER_CLIENTCONTEXT_CLIENTPID, 0x5f8d322e, 0x0fe4, 0x43e4, 0x9e, 0x50, 0xd8, 0x3e, 0xcd, 0x9f, 0xc2, 0xb8);
 
@@ -50,8 +51,12 @@ struct Activator : winrt::implements<Activator, AttributesBase<IMFActivate>>
         {
             try
             {
+                UINT32 clientPid = 0;
+                LOG_IF_FAILED(GetUINT32(MF_FRAMESERVER_CLIENTCONTEXT_CLIENTPID, &clientPid));
+                const auto session = ProducerSession(this);
+                LogEvent("activate for client pid %u, producer session %lu", clientPid, session);
                 auto source = winrt::make_self<MediaSource>();
-                RETURN_IF_FAILED(source->Initialize(this, ProducerSession(this)));
+                RETURN_IF_FAILED(source->Initialize(this, session));
                 _source = std::move(source);
             }
             CATCH_RETURN();

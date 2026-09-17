@@ -1,5 +1,5 @@
 pub const CHROMAFREE_MAGIC: u32 = 0x4D41_4342;
-pub const CHROMAFREE_PROTOCOL_VERSION: u32 = 2;
+pub const CHROMAFREE_PROTOCOL_VERSION: u32 = 3;
 pub const CHROMAFREE_HEADER_SIZE: u32 = 128;
 pub const CHROMAFREE_MAX_WIDTH: u32 = 3840;
 pub const CHROMAFREE_MAX_HEIGHT: u32 = 2160;
@@ -15,10 +15,12 @@ pub const CHROMAFREE_CONSUMER_ACTIVE: u32 = 1;
 
 pub const CHROMAFREE_HEARTBEAT_TIMEOUT_MS: u32 = 2000;
 pub const CHROMAFREE_SEQLOCK_ATTEMPTS: u32 = 64;
+pub const CHROMAFREE_READER_SLOTS: u32 = 8;
 
-pub const CHROMAFREE_SECTION_NAME: &str = "chromafree-frames-v1";
-pub const CHROMAFREE_FRAME_READY_EVENT_NAME: &str = "chromafree-frame-ready-v1";
-pub const CHROMAFREE_CONSUMER_CHANGED_EVENT_NAME: &str = "chromafree-consumer-changed-v1";
+pub const CHROMAFREE_SECTION_NAME: &str = "chromafree-frames-v3";
+pub const CHROMAFREE_FRAME_READY_EVENT_NAME: &str = "chromafree-frame-ready-v3";
+pub const CHROMAFREE_CONSUMER_CHANGED_EVENT_NAME: &str = "chromafree-consumer-changed-v3";
+pub const CHROMAFREE_READER_EVENT_PREFIX: &str = "chromafree-reader-ready-v3-";
 pub const CHROMAFREE_OBJECT_SDDL: &str = "D:P(A;;GA;;;SY)(A;;GA;;;LS)(A;;GA;;;IU)";
 
 #[repr(C)]
@@ -48,5 +50,6 @@ pub struct ChromaFreeFrameHeader {
     pub qpc_frequency: i64,
     pub consumer_width: u32,
     pub consumer_height: u32,
-    pub reserved: [u32; 2],
+    pub reader_slots: u32,
+    pub reserved: u32,
 }

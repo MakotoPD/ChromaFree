@@ -37,6 +37,7 @@ pub struct ObjectNames {
     pub section: String,
     pub frame_ready: String,
     pub consumer_changed: String,
+    pub reader_ready_prefix: String,
 }
 
 impl ObjectNames {
@@ -45,7 +46,12 @@ impl ObjectNames {
             section: format!("{prefix}{CHROMAFREE_SECTION_NAME}"),
             frame_ready: format!("{prefix}{CHROMAFREE_FRAME_READY_EVENT_NAME}"),
             consumer_changed: format!("{prefix}{CHROMAFREE_CONSUMER_CHANGED_EVENT_NAME}"),
+            reader_ready_prefix: format!("{prefix}{CHROMAFREE_READER_EVENT_PREFIX}"),
         }
+    }
+
+    pub fn reader_ready(&self, slot: u32) -> String {
+        format!("{}{slot}", self.reader_ready_prefix)
     }
 
     pub fn local() -> Self {
@@ -125,6 +131,7 @@ pub struct ProducerChannel {
     _view: MappedView,
     region: SharedRegion,
     frame_ready: OwnedHandle,
+    reader_ready: Vec<OwnedHandle>,
     consumer_changed: Arc<OwnedHandle>,
     frame_number: u64,
 }
@@ -173,6 +180,19 @@ impl ProducerChannel {
                 &HSTRING::from(names.consumer_changed.as_str()),
             )
         }?);
+        let reader_ready = (0..CHROMAFREE_READER_SLOTS)
+            .map(|slot| {
+                unsafe {
+                    CreateEventW(
+                        Some(&attributes),
+                        false,
+                        false,
+                        &HSTRING::from(names.reader_ready(slot)),
+                    )
+                }
+                .map(OwnedHandle)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         let (view, region) = map(&section)?;
         if existed {
             region.validate()?;
@@ -184,6 +204,7 @@ impl ProducerChannel {
             _view: view,
             region,
             frame_ready,
+            reader_ready,
             consumer_changed: Arc::new(consumer_changed),
             frame_number: 0,
         })
@@ -210,6 +231,12 @@ impl ProducerChannel {
             .write_frame_parts(format, width, height, self.frame_number, qpc, parts)?;
         self.region.set_producer_active(true, qpc);
         unsafe { SetEvent(self.frame_ready.0) }?;
+        let slots = self.region.reader_slots();
+        for (slot, event) in self.reader_ready.iter().enumerate() {
+            if slots & (1 << slot) != 0 {
+                unsafe { SetEvent(event.0) }?;
+            }
+        }
         Ok(())
     }
 
@@ -241,6 +268,7 @@ pub struct ReaderChannel {
     _view: MappedView,
     region: SharedRegion,
     frame_ready: OwnedHandle,
+    slot: Option<u32>,
     consumer_changed: OwnedHandle,
     consuming: bool,
 }
@@ -256,13 +284,18 @@ impl ReaderChannel {
         }?);
         let (view, region) = map(&section)?;
         region.validate()?;
-        let frame_ready = OwnedHandle(unsafe {
-            OpenEventW(
-                SYNCHRONIZATION_SYNCHRONIZE,
-                false,
-                &HSTRING::from(names.frame_ready.as_str()),
-            )
-        }?);
+        let slot = region.claim_reader_slot();
+        let frame_ready_name = slot.map_or_else(|| names.frame_ready.clone(), |slot| names.reader_ready(slot));
+        let frame_ready = unsafe { OpenEventW(SYNCHRONIZATION_SYNCHRONIZE, false, &HSTRING::from(frame_ready_name)) };
+        let frame_ready = match frame_ready {
+            Ok(handle) => OwnedHandle(handle),
+            Err(error) => {
+                if let Some(slot) = slot {
+                    region.release_reader_slot(slot);
+                }
+                return Err(error.into());
+            }
+        };
         let consumer_changed = OwnedHandle(unsafe {
             OpenEventW(
                 EVENT_MODIFY_STATE,
@@ -275,6 +308,7 @@ impl ReaderChannel {
             _view: view,
             region,
             frame_ready,
+            slot,
             consumer_changed,
             consuming: false,
         })
@@ -326,5 +360,8 @@ impl ReaderChannel {
 impl Drop for ReaderChannel {
     fn drop(&mut self) {
         let _ = self.stop();
+        if let Some(slot) = self.slot {
+            self.region.release_reader_slot(slot);
+        }
     }
 }

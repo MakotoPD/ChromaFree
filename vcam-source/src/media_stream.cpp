@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "media_stream.h"
 #include "offline_frame.h"
+#include "log.h"
 
 namespace
 {
     constexpr int64_t HundredNanosecondsPerSecond = 10'000'000;
-    constexpr int64_t RepeatAfterPeriods = 3;
+    constexpr int64_t RepeatAfterPeriodsNumerator = 3;
+    constexpr int64_t RepeatAfterPeriodsDenominator = 2;
 
     HRESULT CreateVideoType(REFGUID subtype, UINT32 bitsPerPixel, UINT32 stride, const OutputMode& mode, IMFMediaType** type)
     {
@@ -89,6 +91,8 @@ HRESULT MediaStream::Start(IMFMediaType* type)
         HundredNanosecondsPerSecond * denominator / numerator,
     };
 
+    LogEvent("stream start %s %ux%u at %u/%u fps", subtype == MFVideoFormat_NV12 ? "NV12" : (subtype == MFVideoFormat_ARGB32 ? "ARGB32" : "RGB32"), width, height,
+             numerator, denominator);
     RETURN_IF_FAILED(_allocator->InitializeSampleAllocator(10, _currentType.get()));
     RETURN_IF_FAILED(_queue->QueueEventParamVar(MEStreamStarted, GUID_NULL, S_OK, nullptr));
     _state = MF_STREAM_STATE_RUNNING;
@@ -121,6 +125,7 @@ void MediaStream::StopWorker()
 
 HRESULT MediaStream::Stop()
 {
+    LogEvent("stream stop");
     StopWorker();
     winrt::slim_lock_guard lock(_lock);
     RETURN_HR_IF(MF_E_SHUTDOWN, !_queue || !_allocator);
@@ -164,6 +169,7 @@ void MediaStream::Run(const StreamFormat& format)
     }
 
     auto deadline = QpcNow();
+    uint64_t lastFrame = 0;
     for (;;)
     {
         auto now = QpcNow();
@@ -194,19 +200,19 @@ void MediaStream::Run(const StreamFormat& format)
 
         _channel->Heartbeat();
         now = QpcNow();
-        const bool newFrame = result == WAIT_OBJECT_0 + 2;
+        const bool producerAlive = _channel->ProducerAlive();
+        const bool newFrame = producerAlive && _channel->LatestFrameNumber() != lastFrame;
         if (!newFrame && now < deadline)
         {
             continue;
         }
-        const bool producerAlive = _channel->ProducerAlive();
-        if (!Deliver(format, producerAlive, offline))
+        if (!Deliver(format, producerAlive, offline, lastFrame))
         {
-            deadline = now + format.periodQpc;
+            deadline = now + format.periodQpc / 2;
         }
         else if (producerAlive)
         {
-            deadline = now + format.periodQpc * RepeatAfterPeriods;
+            deadline = now + format.periodQpc * RepeatAfterPeriodsNumerator / RepeatAfterPeriodsDenominator;
         }
         else
         {
@@ -215,7 +221,7 @@ void MediaStream::Run(const StreamFormat& format)
     }
 }
 
-bool MediaStream::Deliver(const StreamFormat& format, bool producerAlive, const std::vector<uint8_t>& offline)
+bool MediaStream::Deliver(const StreamFormat& format, bool producerAlive, const std::vector<uint8_t>& offline, uint64_t& lastFrame)
 {
     winrt::slim_lock_guard lock(_lock);
     if (_pendingCount == 0 || !_allocator || !_queue || _state != MF_STREAM_STATE_RUNNING)
@@ -258,7 +264,11 @@ bool MediaStream::Deliver(const StreamFormat& format, bool producerAlive, const 
     }
     LOG_IF_FAILED(buffer2d->Unlock2D());
 
-    const auto sampleTime = frame ? QpcToHundredNanoseconds(frame->qpc, QpcFrequency()) : MFGetSystemTime();
+    if (frame)
+    {
+        lastFrame = frame->number;
+    }
+    const auto sampleTime = MFGetSystemTime();
     auto token = std::move(_pendingTokens[_pendingHead]);
     _pendingHead = (_pendingHead + 1) % MaxPendingRequests;
     _pendingCount--;

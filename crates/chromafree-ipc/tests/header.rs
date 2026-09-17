@@ -11,15 +11,10 @@ fn wide_string_constants() -> String {
             "CHROMAFREE_CONSUMER_CHANGED_EVENT_NAME",
             CHROMAFREE_CONSUMER_CHANGED_EVENT_NAME,
         ),
+        ("CHROMAFREE_READER_EVENT_PREFIX", CHROMAFREE_READER_EVENT_PREFIX),
     ]
     .iter()
-    .map(|(name, value)| {
-        format!(
-            "
-#define {name} L\"{value}\"
-"
-        )
-    })
+    .map(|(name, value)| format!("\n#define {name} L\"{value}\"\n"))
     .collect()
 }
 
@@ -96,13 +91,23 @@ fn header_layout_is_frozen() {
         (offset_of!(ChromaFreeFrameHeader, qpc_frequency), 104),
         (offset_of!(ChromaFreeFrameHeader, consumer_width), 112),
         (offset_of!(ChromaFreeFrameHeader, consumer_height), 116),
-        (offset_of!(ChromaFreeFrameHeader, reserved), 120),
+        (offset_of!(ChromaFreeFrameHeader, reader_slots), 120),
+        (offset_of!(ChromaFreeFrameHeader, reserved), 124),
     ];
     for (index, (actual, expected)) in offsets.iter().enumerate() {
         assert_eq!(actual, expected, "field #{index}");
     }
+    let suffix = format!("-v{CHROMAFREE_PROTOCOL_VERSION}");
+    for name in [
+        CHROMAFREE_SECTION_NAME,
+        CHROMAFREE_FRAME_READY_EVENT_NAME,
+        CHROMAFREE_CONSUMER_CHANGED_EVENT_NAME,
+    ] {
+        assert!(name.ends_with(&suffix), "{name} must carry the protocol version");
+    }
+    assert!(CHROMAFREE_READER_EVENT_PREFIX.ends_with(&format!("{suffix}-")));
     assert_eq!(
-        CHROMAFREE_PROTOCOL_VERSION, 2,
+        CHROMAFREE_PROTOCOL_VERSION, 3,
         "bump the protocol version together with any layout change"
     );
 }

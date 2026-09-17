@@ -59,6 +59,9 @@ english.InstallingCamera=Adding the ChromaFree camera to the system...
 Name: "autostart"; Description: "{cm:AutoStart}"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
+[Dirs]
+Name: "{commonappdata}\ChromaFree"; Permissions: service-modify
+
 [Files]
 Source: "{#PackageDir}\chromafree.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PackageDir}\DirectML.dll"; DestDir: "{app}"; Flags: ignoreversion

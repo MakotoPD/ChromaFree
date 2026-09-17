@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "frame_channel.h"
+#include "log.h"
 
 namespace
 {
@@ -109,6 +110,7 @@ FrameChannel::FrameChannel(DWORD sessionId) : _sessionId(sessionId)
 FrameChannel::~FrameChannel()
 {
     ConsumerStopped();
+    Close();
 }
 
 bool FrameChannel::IsOpen() const
@@ -128,10 +130,29 @@ HANDLE FrameChannel::FrameReadyEvent() const
 
 void FrameChannel::Close()
 {
+    if (_slot && IsOpen())
+    {
+        InterlockedAnd(AsLong(Header()->reader_slots), ~static_cast<LONG>(1u << *_slot));
+    }
+    _slot.reset();
     _consumerChanged.reset();
     _frameReady.reset();
     _view.reset();
     _section.reset();
+}
+
+std::optional<uint32_t> FrameChannel::ClaimSlot()
+{
+    auto* slots = AsLong(Header()->reader_slots);
+    for (uint32_t slot = 0; slot < CHROMAFREE_READER_SLOTS; slot++)
+    {
+        const LONG bit = static_cast<LONG>(1u << slot);
+        if ((InterlockedOr(slots, bit) & bit) == 0)
+        {
+            return slot;
+        }
+    }
+    return std::nullopt;
 }
 
 bool FrameChannel::Open()
@@ -143,21 +164,43 @@ bool FrameChannel::Open()
     _section.reset(OpenFileMappingW(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, SessionName(_sessionId, CHROMAFREE_SECTION_NAME).c_str()));
     if (!_section)
     {
+        const auto error = GetLastError();
+        if (error != _lastOpenError)
+        {
+            LogEvent("shared memory in session %lu not available, error %lu", _sessionId, error);
+            _lastOpenError = error;
+        }
         return false;
     }
     _view.reset(MapViewOfFile(_section.get(), FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, CHROMAFREE_SECTION_SIZE));
-    _frameReady.reset(OpenEventW(SYNCHRONIZE, FALSE, SessionName(_sessionId, CHROMAFREE_FRAME_READY_EVENT_NAME).c_str()));
-    _consumerChanged.reset(OpenEventW(EVENT_MODIFY_STATE, FALSE, SessionName(_sessionId, CHROMAFREE_CONSUMER_CHANGED_EVENT_NAME).c_str()));
     const auto* header = Header();
-    const bool compatible = header && _frameReady && _consumerChanged && Load(header->magic) == CHROMAFREE_MAGIC &&
-                            Load(header->version) == CHROMAFREE_PROTOCOL_VERSION && Load(header->header_size) == CHROMAFREE_HEADER_SIZE;
+    const bool compatible = header && Load(header->magic) == CHROMAFREE_MAGIC && Load(header->version) == CHROMAFREE_PROTOCOL_VERSION &&
+                            Load(header->header_size) == CHROMAFREE_HEADER_SIZE;
     if (!compatible)
     {
-        LOG_HR_MSG(HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH), "chromafree shared memory in session %lu is unusable", _sessionId);
+        LogEvent("shared memory in session %lu has protocol version %u, expected %u", _sessionId, header ? Load(header->version) : 0,
+                 CHROMAFREE_PROTOCOL_VERSION);
         Close();
         return false;
     }
+    _slot = ClaimSlot();
+    const auto readyName = _slot ? std::format(L"{}{}", CHROMAFREE_READER_EVENT_PREFIX, *_slot) : std::wstring(CHROMAFREE_FRAME_READY_EVENT_NAME);
+    _frameReady.reset(OpenEventW(SYNCHRONIZE, FALSE, SessionName(_sessionId, readyName.c_str()).c_str()));
+    _consumerChanged.reset(OpenEventW(EVENT_MODIFY_STATE, FALSE, SessionName(_sessionId, CHROMAFREE_CONSUMER_CHANGED_EVENT_NAME).c_str()));
+    if (!_frameReady || !_consumerChanged)
+    {
+        LogEvent("events in session %lu not available, error %lu", _sessionId, GetLastError());
+        Close();
+        return false;
+    }
+    _lastOpenError = ERROR_SUCCESS;
+    LogEvent("shared memory opened in session %lu, reader slot %d", _sessionId, _slot ? static_cast<int>(*_slot) : -1);
     return true;
+}
+
+uint64_t FrameChannel::LatestFrameNumber() const
+{
+    return IsOpen() ? Load(Header()->frame_number) : 0;
 }
 
 std::optional<OutputMode> FrameChannel::Mode() const

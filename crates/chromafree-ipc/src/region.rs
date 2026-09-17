@@ -348,6 +348,25 @@ impl SharedRegion {
         }
     }
 
+    fn reader_slot_bits(&self) -> &AtomicU32 {
+        self.atomic_u32(unsafe { addr_of_mut!((*self.raw()).reader_slots) })
+    }
+
+    pub fn reader_slots(&self) -> u32 {
+        self.reader_slot_bits().load(Ordering::Acquire)
+    }
+
+    pub fn claim_reader_slot(&self) -> Option<u32> {
+        (0..CHROMAFREE_READER_SLOTS).find(|slot| {
+            let bit = 1 << slot;
+            self.reader_slot_bits().fetch_or(bit, Ordering::AcqRel) & bit == 0
+        })
+    }
+
+    pub fn release_reader_slot(&self, slot: u32) {
+        self.reader_slot_bits().fetch_and(!(1 << slot), Ordering::AcqRel);
+    }
+
     pub fn consumer_heartbeat(&self, qpc: i64) {
         self.atomic_i64(unsafe { addr_of_mut!((*self.raw()).consumer_heartbeat_qpc) })
             .store(qpc, Ordering::Relaxed);

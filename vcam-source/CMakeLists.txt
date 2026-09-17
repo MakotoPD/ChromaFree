@@ -37,6 +37,7 @@ add_library(vcam-source SHARED
     src/media_source.cpp
     src/media_stream.cpp
     src/offline_frame.cpp
+    src/log.cpp
     src/vcam-source.def
     ${CMAKE_CURRENT_BINARY_DIR}/vcam-source.rc
 )

@@ -16,6 +16,11 @@ New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 Copy-Item $built $installDir -Force
 Copy-Item (Join-Path $PSScriptRoot 'assets\offline.png') $installDir -Force
 
+$logDir = Join-Path $env:ProgramData 'ChromaFree'
+New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+icacls $logDir /grant '*S-1-5-19:(OI)(CI)M' | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "icacls failed with exit code $LASTEXITCODE" }
+
 $process = Start-Process -FilePath regsvr32.exe -ArgumentList '/s', "`"$dll`"" -Wait -PassThru
 if ($process.ExitCode -ne 0) { throw "regsvr32 failed with exit code $($process.ExitCode)" }
 

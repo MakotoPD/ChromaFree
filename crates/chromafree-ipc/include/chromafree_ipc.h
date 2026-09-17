@@ -2,16 +2,18 @@
 
 #include <stdint.h>
 
-#define CHROMAFREE_SECTION_NAME L"chromafree-frames-v1"
+#define CHROMAFREE_SECTION_NAME L"chromafree-frames-v3"
 
-#define CHROMAFREE_FRAME_READY_EVENT_NAME L"chromafree-frame-ready-v1"
+#define CHROMAFREE_FRAME_READY_EVENT_NAME L"chromafree-frame-ready-v3"
 
-#define CHROMAFREE_CONSUMER_CHANGED_EVENT_NAME L"chromafree-consumer-changed-v1"
+#define CHROMAFREE_CONSUMER_CHANGED_EVENT_NAME L"chromafree-consumer-changed-v3"
+
+#define CHROMAFREE_READER_EVENT_PREFIX L"chromafree-reader-ready-v3-"
 
 
 #define CHROMAFREE_MAGIC 1296122690
 
-#define CHROMAFREE_PROTOCOL_VERSION 2
+#define CHROMAFREE_PROTOCOL_VERSION 3
 
 #define CHROMAFREE_HEADER_SIZE 128
 
@@ -36,6 +38,8 @@
 #define CHROMAFREE_HEARTBEAT_TIMEOUT_MS 2000
 
 #define CHROMAFREE_SEQLOCK_ATTEMPTS 64
+
+#define CHROMAFREE_READER_SLOTS 8
 
 typedef struct {
   uint32_t magic;
@@ -62,5 +66,6 @@ typedef struct {
   int64_t qpc_frequency;
   uint32_t consumer_width;
   uint32_t consumer_height;
-  uint32_t reserved[2];
+  uint32_t reader_slots;
+  uint32_t reserved;
 } ChromaFreeFrameHeader;

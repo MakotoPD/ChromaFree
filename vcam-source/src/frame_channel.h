@@ -42,10 +42,12 @@ public:
     void Heartbeat();
     bool ProducerAlive() const;
     std::optional<DeliveredFrame> CopyLatest(const FrameTarget& target) const;
+    uint64_t LatestFrameNumber() const;
 
 private:
     void Close();
     void SignalConsumerChanged() const;
+    std::optional<uint32_t> ClaimSlot();
     ChromaFreeFrameHeader* Header() const;
 
     DWORD _sessionId;
@@ -54,6 +56,8 @@ private:
     wil::unique_handle _frameReady;
     wil::unique_handle _consumerChanged;
     bool _consuming = false;
+    std::optional<uint32_t> _slot;
+    DWORD _lastOpenError = ERROR_SUCCESS;
 };
 
 int64_t QpcNow();

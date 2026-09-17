@@ -55,7 +55,8 @@ want to use.
 - **Chroma key workflows:** choose the color effect with the green screen preset and key it in your streaming app.
 - **Changing the output resolution** applies when an app opens the camera again; apps that keep it open continue at their current resolution.
 - The configuration is stored in `%APPDATA%\ChromaFree\config.toml` and reloaded when the file changes.
-- Logs are written to `%LOCALAPPDATA%\ChromaFree\chromafree.log`.
+- Logs are written to `%LOCALAPPDATA%\ChromaFree\chromafree.log`. The virtual camera source running inside Windows
+  Frame Server logs activations and stream starts to `%ProgramData%\ChromaFree\vcam-source.log`.
 
 ## Troubleshooting
 
