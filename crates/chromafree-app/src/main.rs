@@ -100,7 +100,12 @@ fn run() -> Result<()> {
     if std::env::args().any(|arg| arg == "--headless") {
         run_headless(config, models_dir)
     } else {
-        gui::run(config, config_path, models_dir)
+        gui::run(
+            config,
+            config_path,
+            models_dir,
+            !std::env::args().any(|arg| arg == "--minimized"),
+        )
     }
 }
 

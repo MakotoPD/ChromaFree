@@ -259,7 +259,7 @@ struct App {
     _tray: TrayIcon,
 }
 
-pub fn run(config: Config, config_path: PathBuf, models_dir: PathBuf) -> Result<()> {
+pub fn run(config: Config, config_path: PathBuf, models_dir: PathBuf, show_window: bool) -> Result<()> {
     let shared = Arc::new(Shared::default());
     let engine = Engine::start(
         EngineOptions {
@@ -319,7 +319,9 @@ pub fn run(config: Config, config_path: PathBuf, models_dir: PathBuf) -> Result<
         _tray: tray,
     };
     APP.with(|cell| *cell.borrow_mut() = Some(app));
-    with_app(App::open_window);
+    if show_window {
+        with_app(App::open_window);
+    }
     slint::run_event_loop_until_quit()?;
     APP.with(|cell| cell.borrow_mut().take());
     Ok(())
