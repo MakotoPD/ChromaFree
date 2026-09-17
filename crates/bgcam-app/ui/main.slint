@@ -1,0 +1,436 @@
+import { Button, CheckBox, ComboBox, GroupBox, LineEdit, ScrollView, Slider, TabWidget, VerticalBox, HorizontalBox } from "std-widgets.slint";
+
+component Hint inherits Text {
+    wrap: word-wrap;
+    font-size: 12px;
+    color: #8a8f98;
+}
+
+component LabeledSlider inherits VerticalLayout {
+    in property <string> label;
+    in-out property <float> value;
+    in property <bool> active: true;
+    callback edited();
+    spacing: 2px;
+    HorizontalLayout {
+        Text {
+            text: root.label;
+            horizontal-stretch: 1;
+        }
+        Text {
+            text: round(root.value) + " %";
+        }
+    }
+    Slider {
+        minimum: 0;
+        maximum: 100;
+        enabled: root.active;
+        value <=> root.value;
+        released => {
+            root.edited();
+        }
+    }
+}
+
+export component MainWindow inherits Window {
+    title: "bgcam";
+    preferred-width: 1180px;
+    preferred-height: 720px;
+    min-width: 900px;
+    min-height: 560px;
+    in property <image> window-icon;
+    icon: window-icon;
+
+    in property <image> preview;
+    in property <bool> has-preview;
+    in property <string> status-text;
+    in property <string> detail-text;
+    in property <string> virtual-camera-text;
+    in property <bool> status-problem;
+
+    in property <[string]> camera-names;
+    in-out property <int> camera-index;
+    in property <string> camera-message;
+    in property <[string]> format-names;
+    in-out property <int> format-index;
+
+    in property <[string]> output-names;
+    in-out property <int> output-index;
+    in property <[string]> fps-names;
+    in-out property <int> fps-index;
+    in-out property <int> rotation-index;
+    in-out property <bool> mirror-horizontal;
+    in-out property <bool> mirror-vertical;
+
+    in-out property <int> effect-index;
+    in-out property <float> blur-strength;
+    in-out property <string> color-text;
+    in property <color> color-swatch;
+    in property <string> image-path;
+
+    in-out property <int> method-index;
+    in property <[string]> quality-names;
+    in-out property <int> quality-index;
+    in-out property <int> device-index;
+    in-out property <float> edge-low;
+    in-out property <float> edge-high;
+    in-out property <float> smoothing;
+
+    callback settings-edited();
+    callback camera-selected();
+    callback refresh-cameras();
+    callback color-preset(string);
+    callback choose-image();
+    callback reset-mask();
+
+    HorizontalBox {
+        VerticalBox {
+            horizontal-stretch: 3;
+            Rectangle {
+                vertical-stretch: 1;
+                background: #16181c;
+                border-radius: 8px;
+                clip: true;
+                if root.has-preview: Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.preview;
+                    image-fit: contain;
+                }
+                if !root.has-preview: Text {
+                    text: "Podgląd pojawi się po uruchomieniu kamery";
+                    color: #8a8f98;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            Rectangle {
+                background: root.status-problem ? #3a2323 : #1f2a22;
+                border-radius: 8px;
+                VerticalLayout {
+                    padding: 10px;
+                    spacing: 4px;
+                    Text {
+                        text: root.status-text;
+                        font-size: 15px;
+                        font-weight: 600;
+                        color: root.status-problem ? #ffb4ab : #b8f0c4;
+                        wrap: word-wrap;
+                    }
+                    Text {
+                        text: root.detail-text;
+                        color: #c9ccd1;
+                        wrap: word-wrap;
+                    }
+                    Text {
+                        text: root.virtual-camera-text;
+                        color: #c9ccd1;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+
+        TabWidget {
+            horizontal-stretch: 2;
+            min-width: 380px;
+
+            Tab {
+                title: "Kamera";
+                ScrollView {
+                    VerticalBox {
+                        alignment: start;
+                        GroupBox {
+                            title: "Kamera wejściowa";
+                            VerticalBox {
+                                HorizontalBox {
+                                    padding: 0;
+                                    ComboBox {
+                                        horizontal-stretch: 1;
+                                        model: root.camera-names;
+                                        current-index <=> root.camera-index;
+                                        selected => {
+                                            root.camera-selected();
+                                        }
+                                    }
+                                    Button {
+                                        text: "Odśwież";
+                                        clicked => {
+                                            root.refresh-cameras();
+                                        }
+                                    }
+                                }
+                                if root.camera-message != "": Text {
+                                    text: root.camera-message;
+                                    color: #ffb4ab;
+                                    wrap: word-wrap;
+                                }
+                                Text {
+                                    text: "Rozdzielczość i klatki kamery";
+                                }
+                                ComboBox {
+                                    model: root.format-names;
+                                    current-index <=> root.format-index;
+                                    selected => {
+                                        root.settings-edited();
+                                    }
+                                }
+                                Hint {
+                                    text: "Automatycznie wybiera największą rozdzielczość do 1920×1080, która nadąża za klatkami wyjścia. Wyższa rozdzielczość to lepsza jakość, ale więcej pracy przy skalowaniu.";
+                                }
+                            }
+                        }
+                        GroupBox {
+                            title: "Wyjście wirtualnej kamery";
+                            VerticalBox {
+                                HorizontalBox {
+                                    padding: 0;
+                                    ComboBox {
+                                        horizontal-stretch: 2;
+                                        model: root.output-names;
+                                        current-index <=> root.output-index;
+                                        selected => {
+                                            root.settings-edited();
+                                        }
+                                    }
+                                    ComboBox {
+                                        horizontal-stretch: 1;
+                                        model: root.fps-names;
+                                        current-index <=> root.fps-index;
+                                        selected => {
+                                            root.settings-edited();
+                                        }
+                                    }
+                                }
+                                Hint {
+                                    text: "Wirtualna kamera wystawia tylko tę rozdzielczość. Zmiana na chwilę restartuje obraz w aplikacjach, które z niej korzystają.";
+                                }
+                            }
+                        }
+                        GroupBox {
+                            title: "Orientacja";
+                            VerticalBox {
+                                ComboBox {
+                                    model: ["Bez obrotu", "Obrót o 90°", "Obrót o 180°", "Obrót o 270°"];
+                                    current-index <=> root.rotation-index;
+                                    selected => {
+                                        root.settings-edited();
+                                    }
+                                }
+                                CheckBox {
+                                    text: "Odbicie lustrzane w poziomie";
+                                    checked <=> root.mirror-horizontal;
+                                    toggled => {
+                                        root.settings-edited();
+                                    }
+                                }
+                                CheckBox {
+                                    text: "Odbicie lustrzane w pionie";
+                                    checked <=> root.mirror-vertical;
+                                    toggled => {
+                                        root.settings-edited();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Tab {
+                title: "Tło";
+                ScrollView {
+                    VerticalBox {
+                        alignment: start;
+                        GroupBox {
+                            title: "Efekt";
+                            VerticalBox {
+                                ComboBox {
+                                    model: ["Bez zmian", "Rozmycie tła", "Usunięcie tła: kolor", "Własne tło z obrazu", "Usunięcie tła: przezroczystość"];
+                                    current-index <=> root.effect-index;
+                                    selected => {
+                                        root.settings-edited();
+                                    }
+                                }
+                                if root.effect-index == 0: Hint {
+                                    text: "Obraz z kamery bez maskowania. Model segmentacji nie jest uruchamiany.";
+                                }
+                                if root.effect-index == 4: Hint {
+                                    text: "Tło dostaje kanał alfa w formacie ARGB32 (np. Meld Studio). Aplikacje, które pobierają NV12 (Discord, przeglądarki, OBS), zobaczą tło w kolorze poniżej.";
+                                }
+                            }
+                        }
+                        if root.effect-index == 1: GroupBox {
+                            title: "Rozmycie";
+                            VerticalBox {
+                                LabeledSlider {
+                                    label: "Siła rozmycia";
+                                    value <=> root.blur-strength;
+                                    edited => {
+                                        root.settings-edited();
+                                    }
+                                }
+                                Hint {
+                                    text: "Rozmycie liczone jest na zmniejszonym tle, więc siła prawie nie wpływa na zużycie zasobów.";
+                                }
+                            }
+                        }
+                        if root.effect-index == 2 || root.effect-index == 4: GroupBox {
+                            title: root.effect-index == 2 ? "Kolor tła" : "Kolor tła dla aplikacji bez przezroczystości";
+                            VerticalBox {
+                                HorizontalBox {
+                                    padding: 0;
+                                    Button {
+                                        text: "Green screen";
+                                        clicked => {
+                                            root.color-preset("#00B140");
+                                        }
+                                    }
+                                    Button {
+                                        text: "Blue screen";
+                                        clicked => {
+                                            root.color-preset("#0047BB");
+                                        }
+                                    }
+                                }
+                                HorizontalBox {
+                                    padding: 0;
+                                    Rectangle {
+                                        width: 36px;
+                                        height: 28px;
+                                        border-radius: 4px;
+                                        border-width: 1px;
+                                        border-color: #5a5f66;
+                                        background: root.color-swatch;
+                                    }
+                                    LineEdit {
+                                        placeholder-text: "#RRGGBB";
+                                        text <=> root.color-text;
+                                        accepted => {
+                                            root.settings-edited();
+                                        }
+                                    }
+                                }
+                                Hint {
+                                    text: "Wpisz dowolny kolor w zapisie szesnastkowym i zatwierdź Enterem.";
+                                }
+                            }
+                        }
+                        if root.effect-index == 3: GroupBox {
+                            title: "Obraz tła";
+                            VerticalBox {
+                                Text {
+                                    text: root.image-path == "" ? "Nie wybrano obrazu" : root.image-path;
+                                    wrap: word-wrap;
+                                }
+                                Button {
+                                    text: "Wybierz obraz PNG lub JPEG…";
+                                    clicked => {
+                                        root.choose-image();
+                                    }
+                                }
+                                Hint {
+                                    text: "Obraz jest skalowany raz przy zmianie, bez kosztu na każdą klatkę.";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Tab {
+                title: "Maskowanie";
+                ScrollView {
+                    VerticalBox {
+                        alignment: start;
+                        GroupBox {
+                            title: "Metoda";
+                            VerticalBox {
+                                ComboBox {
+                                    model: ["RVM – dokładna", "MediaPipe – oszczędna"];
+                                    current-index <=> root.method-index;
+                                    selected => {
+                                        root.settings-edited();
+                                    }
+                                }
+                                Hint {
+                                    text: root.method-index == 0 ? "Robust Video Matting pamięta poprzednie klatki, dzięki czemu włosy i krawędzie są stabilne. Najlepsza jakość, więcej pracy GPU." : "MediaPipe Selfie Segmentation liczy małą maskę 256×256. Bardzo lekka, ale krawędzie są mniej dokładne i wymagają wygładzania.";
+                                }
+                            }
+                        }
+                        GroupBox {
+                            title: "Jakość i urządzenie";
+                            VerticalBox {
+                                Text {
+                                    text: "Rozdzielczość modelu";
+                                }
+                                ComboBox {
+                                    enabled: root.method-index == 0;
+                                    model: root.quality-names;
+                                    current-index <=> root.quality-index;
+                                    selected => {
+                                        root.settings-edited();
+                                    }
+                                }
+                                Hint {
+                                    text: "Automatycznie: wariant o proporcjach kamery i największej rozdzielczości nie większej niż obraz. Wyższa rozdzielczość daje dokładniejsze krawędzie kosztem GPU.";
+                                }
+                                Text {
+                                    text: "Urządzenie";
+                                }
+                                ComboBox {
+                                    model: ["GPU (DirectML)", "CPU"];
+                                    current-index <=> root.device-index;
+                                    selected => {
+                                        root.settings-edited();
+                                    }
+                                }
+                                Hint {
+                                    text: "GPU liczy maskę, rozmycie i kompozycję bez obciążania procesora. CPU działa wszędzie, ale zużywa znacznie więcej procesora.";
+                                }
+                            }
+                        }
+                        GroupBox {
+                            title: "Strojenie maski";
+                            VerticalBox {
+                                LabeledSlider {
+                                    label: "Próg dolny krawędzi";
+                                    value <=> root.edge-low;
+                                    edited => {
+                                        root.settings-edited();
+                                    }
+                                }
+                                LabeledSlider {
+                                    label: "Próg górny krawędzi";
+                                    value <=> root.edge-high;
+                                    edited => {
+                                        root.settings-edited();
+                                    }
+                                }
+                                Hint {
+                                    text: "Zbliżenie progów daje ostrzejszą krawędź i mniej prześwitów tła. Rozsunięcie daje miękkie przejście.";
+                                }
+                                LabeledSlider {
+                                    label: "Wygładzanie czasowe";
+                                    value <=> root.smoothing;
+                                    edited => {
+                                        root.settings-edited();
+                                    }
+                                }
+                                Hint {
+                                    text: "Uśrednia maskę między klatkami i usuwa migotanie. Za wysoka wartość powoduje smugi przy ruchu. Koszt pomijalny.";
+                                }
+                                Button {
+                                    text: "Przywróć domyślne dla modelu";
+                                    clicked => {
+                                        root.reset-mask();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

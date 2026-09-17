@@ -5,7 +5,9 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use bgcam_app::camera::MediaFoundationCameras;
 use bgcam_app::config::Config;
+use bgcam_app::desktop::SingleInstance;
 use bgcam_app::engine::{Engine, EngineObserver, EngineOptions, EngineStatus};
+use bgcam_app::gui;
 use bgcam_core::BgraFrame;
 use bgcam_ipc::ObjectNames;
 
@@ -45,11 +47,25 @@ fn models_dir() -> Result<PathBuf> {
 
 fn main() -> Result<()> {
     tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
+    let Some(_instance) = SingleInstance::acquire()? else {
+        tracing::warn!("bgcam is already running");
+        return Ok(());
+    };
     let config_path = Config::default_path()?;
-    let config = Config::load(&config_path)?;
+    let config = Config::load(&config_path).unwrap_or_else(|error| {
+        tracing::warn!(error = format!("{error:#}"), "configuration is invalid, using defaults");
+        Config::default()
+    });
     let models_dir = models_dir()?;
     tracing::info!(config = %config_path.display(), models = %models_dir.display(), "starting");
+    if std::env::args().any(|arg| arg == "--headless") {
+        run_headless(config, models_dir)
+    } else {
+        gui::run(config, config_path, models_dir)
+    }
+}
 
+fn run_headless(config: Config, models_dir: PathBuf) -> Result<()> {
     let engine = Engine::start(
         EngineOptions {
             names: ObjectNames::local(),

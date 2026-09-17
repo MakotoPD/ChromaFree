@@ -3,4 +3,5 @@ fn main() {
         println!("cargo:rustc-link-arg=/DELAYLOAD:DirectML.dll");
         println!("cargo:rustc-link-lib=delayimp");
     }
+    slint_build::compile("ui/main.slint").expect("compiling ui/main.slint");
 }
