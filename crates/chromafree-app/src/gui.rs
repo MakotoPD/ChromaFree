@@ -19,7 +19,7 @@ use crate::camera::MediaFoundationCameras;
 use crate::config::{
     Config, DeviceConfig, EffectMode, FormatConfig, MethodConfig, format_color, parse_color, parse_quality,
 };
-use crate::desktop::{icon_rgba, pick_background_image, watch_directory};
+use crate::desktop::{pick_background_image, watch_directory};
 use crate::engine::{
     Engine, EngineCommand, EngineObserver, EngineOptions, EngineState, EngineStatus, VirtualCameraState,
 };
@@ -279,7 +279,7 @@ pub fn run(config: Config, config_path: PathBuf, models_dir: PathBuf) -> Result<
     menu.append_items(&[&show, &quit])?;
     let tray = TrayIconBuilder::new()
         .with_tooltip("ChromaFree")
-        .with_icon(Icon::from_rgba(icon_rgba(32), 32, 32)?)
+        .with_icon(Icon::from_resource(1, Some((32, 32)))?)
         .with_menu(Box::new(menu))
         .with_menu_on_left_click(false)
         .build()
@@ -347,8 +347,6 @@ impl App {
                 return;
             }
         };
-        let icon = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&icon_rgba(64), 64, 64);
-        window.set_window_icon(Image::from_rgba8(icon));
         window.set_output_names(strings(OUTPUT_PRESETS.iter().map(|(w, h)| format!("{w}×{h}"))));
         window.set_fps_names(strings(FPS_PRESETS.iter().map(|fps| format!("{fps} kl./s"))));
         window.set_quality_names(strings(

@@ -83,25 +83,3 @@ pub fn watch_directory(directory: &Path, on_change: impl Fn() + Send + 'static) 
         })?;
     Ok(())
 }
-
-pub fn icon_rgba(size: u32) -> Vec<u8> {
-    let center = size as f32 / 2.0;
-    let outer = center - 0.5;
-    let inner = outer * 0.45;
-    let mut pixels = Vec::with_capacity((size * size * 4) as usize);
-    for y in 0..size {
-        for x in 0..size {
-            let distance = ((x as f32 + 0.5 - center).powi(2) + (y as f32 + 0.5 - center).powi(2)).sqrt();
-            let coverage = (outer - distance + 0.5).clamp(0.0, 1.0);
-            let pixel = if distance < inner {
-                [24, 26, 30]
-            } else if distance < inner + 1.5 {
-                [230, 240, 235]
-            } else {
-                [0, 177, 64]
-            };
-            pixels.extend_from_slice(&[pixel[0], pixel[1], pixel[2], (coverage * 255.0) as u8]);
-        }
-    }
-    pixels
-}

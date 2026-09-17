@@ -26,4 +26,5 @@ tracing-subscriber.workspace = true
 windows = { workspace = true, features = ["Win32_Media_MediaFoundation", "Win32_System_Com", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_UI_Shell_Common"] }
 
 [build-dependencies]
+embed-resource = "3"
 slint-build = "1.18"
