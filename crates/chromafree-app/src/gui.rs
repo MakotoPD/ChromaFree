@@ -178,8 +178,8 @@ pub fn status_lines(status: &EngineStatus, language: Language) -> (String, Strin
             let processing = status.processing_ms;
             match status.latency_ms {
                 Some(latency) => language.pick(
-                    format!("Running: {fps}, {processing:.1} ms per frame, latency {latency:.0} ms"),
-                    format!("Działa: {fps}, {processing:.1} ms na klatkę, opóźnienie {latency:.0} ms"),
+                    format!("Running: {fps}, {processing:.1} ms per frame, camera to processing {latency:.0} ms"),
+                    format!("Działa: {fps}, {processing:.1} ms na klatkę, kamera do obróbki {latency:.0} ms"),
                 ),
                 None => language.pick(
                     format!("Running: {fps}, {processing:.1} ms per frame"),

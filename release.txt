@@ -1,3 +1,10 @@
+## Changes (v0.1.1)
+
+### Fixes
+- Pace virtual camera samples at the frame rate negotiated with the consuming app, preventing extra frames from accumulating in OBS and other clients.
+- Repeat the last valid frame during brief shared-memory read or format mismatches instead of flashing the offline image. The offline image still appears when the producer stops.
+- Clarify that the latency shown in the app measures the path from the physical camera through processing, not delivery to the consuming app.
+
 ## Changes (v0.1.0)
 
 ### Features

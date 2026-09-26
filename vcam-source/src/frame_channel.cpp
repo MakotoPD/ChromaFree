@@ -198,11 +198,6 @@ bool FrameChannel::Open()
     return true;
 }
 
-uint64_t FrameChannel::LatestFrameNumber() const
-{
-    return IsOpen() ? Load(Header()->frame_number) : 0;
-}
-
 std::optional<OutputMode> FrameChannel::Mode() const
 {
     if (!IsOpen())

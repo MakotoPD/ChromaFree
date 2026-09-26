@@ -41,7 +41,8 @@ private:
 
     void StopWorker();
     void Run(const StreamFormat& format);
-    bool Deliver(const StreamFormat& format, bool producerAlive, const std::vector<uint8_t>& offline, uint64_t& lastFrame);
+    bool Deliver(const StreamFormat& format, bool producerAlive, const std::vector<uint8_t>& offline, std::vector<uint8_t>& lastPixels,
+                 int64_t& lastGoodQpc);
 
     winrt::slim_mutex _lock;
     MF_STREAM_STATE _state = MF_STREAM_STATE_STOPPED;

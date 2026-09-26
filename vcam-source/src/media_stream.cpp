@@ -6,9 +6,7 @@
 namespace
 {
     constexpr int64_t HundredNanosecondsPerSecond = 10'000'000;
-    constexpr int64_t RepeatAfterPeriodsNumerator = 3;
-    constexpr int64_t RepeatAfterPeriodsDenominator = 2;
-
+    constexpr int64_t CachedFrameGracePeriodMs = 500;
     HRESULT CreateVideoType(REFGUID subtype, UINT32 bitsPerPixel, UINT32 stride, const OutputMode& mode, IMFMediaType** type)
     {
         wil::com_ptr_nothrow<IMFMediaType> result;
@@ -30,6 +28,17 @@ namespace
     int64_t QpcToHundredNanoseconds(int64_t qpc, int64_t frequency)
     {
         return qpc / frequency * HundredNanosecondsPerSecond + qpc % frequency * HundredNanosecondsPerSecond / frequency;
+    }
+
+    void CacheFrame(const FrameTarget& target, std::vector<uint8_t>& pixels)
+    {
+        const auto rowBytes = target.format == CHROMAFREE_FORMAT_NV12 ? static_cast<size_t>(target.width) : static_cast<size_t>(target.width) * 4;
+        const auto rows = target.format == CHROMAFREE_FORMAT_NV12 ? target.height + target.height / 2 : target.height;
+        pixels.resize(rowBytes * rows);
+        for (uint32_t row = 0; row < rows; row++)
+        {
+            memcpy(pixels.data() + static_cast<size_t>(row) * rowBytes, target.scanline0 + static_cast<ptrdiff_t>(row) * target.pitch, rowBytes);
+        }
     }
 }
 
@@ -169,7 +178,8 @@ void MediaStream::Run(const StreamFormat& format)
     }
 
     auto deadline = QpcNow();
-    uint64_t lastFrame = 0;
+    std::vector<uint8_t> lastPixels;
+    int64_t lastGoodQpc = 0;
     for (;;)
     {
         auto now = QpcNow();
@@ -200,28 +210,28 @@ void MediaStream::Run(const StreamFormat& format)
 
         _channel->Heartbeat();
         now = QpcNow();
-        const bool producerAlive = _channel->ProducerAlive();
-        const bool newFrame = producerAlive && _channel->LatestFrameNumber() != lastFrame;
-        if (!newFrame && now < deadline)
+        if (now < deadline)
         {
             continue;
         }
-        if (!Deliver(format, producerAlive, offline, lastFrame))
+        if (!Deliver(format, _channel->ProducerAlive(), offline, lastPixels, lastGoodQpc))
         {
-            deadline = now + format.periodQpc / 2;
-        }
-        else if (producerAlive)
-        {
-            deadline = now + format.periodQpc * RepeatAfterPeriodsNumerator / RepeatAfterPeriodsDenominator;
+            deadline = QpcNow() + format.periodQpc / 2;
         }
         else
         {
-            deadline = std::max(deadline, now - format.periodQpc) + format.periodQpc;
+            deadline += format.periodQpc;
+            const auto deliveredAt = QpcNow();
+            if (deadline <= deliveredAt)
+            {
+                deadline = deliveredAt + format.periodQpc;
+            }
         }
     }
 }
 
-bool MediaStream::Deliver(const StreamFormat& format, bool producerAlive, const std::vector<uint8_t>& offline, uint64_t& lastFrame)
+bool MediaStream::Deliver(const StreamFormat& format, bool producerAlive, const std::vector<uint8_t>& offline, std::vector<uint8_t>& lastPixels,
+                          int64_t& lastGoodQpc)
 {
     winrt::slim_lock_guard lock(_lock);
     if (_pendingCount == 0 || !_allocator || !_queue || _state != MF_STREAM_STATE_RUNNING)
@@ -251,7 +261,17 @@ bool MediaStream::Deliver(const StreamFormat& format, bool producerAlive, const 
 
     const FrameTarget target{ scanline0, pitch, format.format, format.width, format.height };
     const auto frame = producerAlive ? _channel->CopyLatest(target) : std::nullopt;
-    if (!frame)
+    if (frame)
+    {
+        CacheFrame(target, lastPixels);
+        lastGoodQpc = QpcNow();
+    }
+    else if (producerAlive && !lastPixels.empty() &&
+             QpcNow() - lastGoodQpc <= QpcFrequency() * CachedFrameGracePeriodMs / 1000)
+    {
+        CopyFrame(target, lastPixels.data());
+    }
+    else
     {
         if (offline.empty())
         {
@@ -264,10 +284,6 @@ bool MediaStream::Deliver(const StreamFormat& format, bool producerAlive, const 
     }
     LOG_IF_FAILED(buffer2d->Unlock2D());
 
-    if (frame)
-    {
-        lastFrame = frame->number;
-    }
     const auto sampleTime = MFGetSystemTime();
     auto token = std::move(_pendingTokens[_pendingHead]);
     _pendingHead = (_pendingHead + 1) % MaxPendingRequests;

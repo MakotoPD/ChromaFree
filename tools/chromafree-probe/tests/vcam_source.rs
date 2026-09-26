@@ -11,6 +11,7 @@ use chromafree_ipc::{ObjectNames, OutputMode, PixelFormat, ProducerChannel};
 const WIDTH: u32 = 640;
 const HEIGHT: u32 = 360;
 const FPS: u32 = 30;
+const PRODUCER_FPS: u32 = 60;
 const SMOKE_SECONDS: f64 = 6.0;
 const PRODUCER_STOP_MS: f64 = 3000.0;
 const PRODUCER_VALUE: u8 = 150;
@@ -51,11 +52,13 @@ fn spawn_producer(stop: Arc<AtomicBool>) -> thread::JoinHandle<ProducerReport> {
     thread::spawn(move || {
         let mut pixels = vec![0u8; PixelFormat::Bgra.frame_size(WIDTH, HEIGHT)];
         let mut consumer_formats = Vec::new();
-        let period = Duration::from_secs(1) / FPS;
+        let period = Duration::from_secs(1) / PRODUCER_FPS;
+        let mut consumer_started = None;
         let mut next = Instant::now();
         while !stop.load(Ordering::Relaxed) {
             let consumer = channel.consumer();
             if let Some(format) = consumer.format {
+                let elapsed = consumer_started.get_or_insert_with(Instant::now).elapsed();
                 if consumer_formats.last() != Some(&format) {
                     consumer_formats.push(format);
                 }
@@ -67,7 +70,17 @@ fn spawn_producer(stop: Arc<AtomicBool>) -> thread::JoinHandle<ProducerReport> {
                         }
                     }
                 }
-                channel.publish(format, WIDTH, HEIGHT, &pixels).unwrap();
+                // A temporary format mismatch must repeat the last good frame, not flash offline.
+                let published_format = if (Duration::from_millis(1200)..Duration::from_millis(1400)).contains(&elapsed)
+                {
+                    match format {
+                        PixelFormat::Nv12 => PixelFormat::Bgra,
+                        PixelFormat::Bgra => PixelFormat::Nv12,
+                    }
+                } else {
+                    format
+                };
+                channel.publish(published_format, WIDTH, HEIGHT, &pixels).unwrap();
             }
             let now = Instant::now();
             next = (next + period).max(now);

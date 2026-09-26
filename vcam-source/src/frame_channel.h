@@ -42,7 +42,6 @@ public:
     void Heartbeat();
     bool ProducerAlive() const;
     std::optional<DeliveredFrame> CopyLatest(const FrameTarget& target) const;
-    uint64_t LatestFrameNumber() const;
 
 private:
     void Close();

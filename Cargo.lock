@@ -785,7 +785,7 @@ dependencies = [
 
 [[package]]
 name = "chromafree-app"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chromafree-capture",
@@ -806,7 +806,7 @@ dependencies = [
 
 [[package]]
 name = "chromafree-capture"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chromafree-core",
  "chromafree-ipc",
@@ -816,7 +816,7 @@ dependencies = [
 
 [[package]]
 name = "chromafree-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "half",
@@ -827,7 +827,7 @@ dependencies = [
 
 [[package]]
 name = "chromafree-gpu"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chromafree-core",
  "half",
@@ -839,7 +839,7 @@ dependencies = [
 
 [[package]]
 name = "chromafree-ipc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "cbindgen",
  "thiserror 2.0.20",
@@ -848,7 +848,7 @@ dependencies = [
 
 [[package]]
 name = "chromafree-probe"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chromafree-ipc",
